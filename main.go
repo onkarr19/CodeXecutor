@@ -19,14 +19,16 @@ const redisHost = "localhost:6379"
 const redisPassword = ""
 
 type Submission struct {
-	ID   string `json:"id"`
-	Code string `json:"code"`
-	Lang string `json:"lang"`
+	ID       string `json:"id"`
+	Code     string `json:"code"`
+	Lang     string `json:"lang"`
+	Expected string `json:"expected"`
 }
 
-type TestOutput struct {
-	ID     string `json:"id"`
-	Output string `json:"output"`
+type Verdict struct {
+	ID      string `json:"id"`
+	Output  string `json:"output"`
+	Verdict bool   `json:"verdict"`
 }
 
 func RedisClient() *redis.Client {
@@ -37,7 +39,15 @@ func RedisClient() *redis.Client {
 	})
 }
 
-func publishToQueue(redisclient *redis.Client, queueName string, key string, data interface{}) error {
+func getStatus(redisClient *redis.Client, key string) int64 {
+	val, err := redisClient.Get(ctx, key).Int64()
+	if err != nil {
+		return -1
+	}
+	return val
+}
+
+func publishToQueue(redisClient *redis.Client, queueName string, key string, data interface{}) error {
 
 	// Serialize the data to JSON
 	jsonData, err := json.Marshal(data)
@@ -46,7 +56,14 @@ func publishToQueue(redisclient *redis.Client, queueName string, key string, dat
 	}
 
 	// Push the serialized JSON to the queue
-	err = redisclient.LPush(ctx, queueName, jsonData).Err()
+	err = redisClient.LPush(ctx, queueName, jsonData).Err()
+	if err != nil {
+		return err
+	}
+
+	// Set a key-value pair
+	value := getStatus(redisClient, key)
+	err = redisClient.Set(ctx, key, value+1, 0).Err()
 	if err != nil {
 		return err
 	}
@@ -54,11 +71,28 @@ func publishToQueue(redisclient *redis.Client, queueName string, key string, dat
 	return nil
 }
 
+func popFromInputQueue(redisClient *redis.Client, queueName string) (Submission, error) {
+	// Pop the serialized JSON from the right end of the queue
+	jsonData, err := redisClient.RPop(ctx, queueName).Result()
+	if err != nil {
+		return Submission{}, err
+	}
+
+	// Deserialize the JSON into a Submission struct
+	var data Submission
+	err = json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		return Submission{}, err
+	}
+
+	return data, nil
+}
+
 func worker(id int, wg *sync.WaitGroup, redisClient *redis.Client) {
 	defer wg.Done()
 	for {
 		// Pop a message from the Redis List
-		message, err := redisClient.RPop(ctx, "inputqueue").Result()
+		submission, err := popFromInputQueue(redisClient, "inputqueue")
 		if err != nil {
 			if err == redis.Nil {
 				// No message available, worker will wait for new messages
@@ -69,16 +103,22 @@ func worker(id int, wg *sync.WaitGroup, redisClient *redis.Client) {
 				fmt.Printf("Worker %d: Error: %v\n", id, err)
 				continue
 			}
-		}
+		} else {
 
-		if message != "" {
-			fmt.Printf("Worker %d: Received message: %s\n", id, message)
+			// Now you can access the 'ID' field of 'submission'
+			fmt.Printf("Worker %d: Received message: %s\n", id, submission.ID)
 			time.Sleep(3 * time.Second)
 			// TODO: Write docker logic here.
+			output := "456"
+			res := Verdict{ID: submission.ID, Output: output}
+			fmt.Println("expe: ", submission.Expected)
 
-			output := TestOutput{ID: "123", Output: "456"}
-			publishToQueue(redisClient, "outputqueue", "key", output)
-			fmt.Printf("Worker %d: Completed: %s\n", id, message)
+			if submission.Expected != "" {
+				res.Verdict = output == submission.Expected
+			}
+
+			publishToQueue(redisClient, "outputqueue", res.ID, res)
+			fmt.Printf("Worker %d: Completed: %s\n", id, submission)
 		}
 	}
 }
