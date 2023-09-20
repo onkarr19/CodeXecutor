@@ -96,7 +96,7 @@ func worker(id int, wg *sync.WaitGroup, redisClient *redis.Client) {
 		if err != nil {
 			if err == redis.Nil {
 				// No message available, worker will wait for new messages
-				fmt.Printf("Worker %d: No message available, waiting...\n", id)
+				// fmt.Printf("Worker %d: No message available, waiting...\n", id)
 				// break // Exit the loop and stop the worker
 			} else {
 				// Handle other Redis-related errors here, e.g., reconnect to Redis or log the error
@@ -106,19 +106,18 @@ func worker(id int, wg *sync.WaitGroup, redisClient *redis.Client) {
 		} else {
 
 			// Now you can access the 'ID' field of 'submission'
-			fmt.Printf("Worker %d: Received message: %s\n", id, submission.ID)
+			// fmt.Printf("Worker %d: Received message: %s\n", id, submission.ID)
 			time.Sleep(3 * time.Second)
 			// TODO: Write docker logic here.
 			output := "456"
 			res := Verdict{ID: submission.ID, Output: output}
-			fmt.Println("expe: ", submission.Expected)
 
 			if submission.Expected != "" {
 				res.Verdict = output == submission.Expected
 			}
 
 			publishToQueue(redisClient, "outputqueue", res.ID, res)
-			fmt.Printf("Worker %d: Completed: %s\n", id, submission)
+			// fmt.Printf("Worker %d: Completed: %s\n", id, submission)
 		}
 	}
 }
