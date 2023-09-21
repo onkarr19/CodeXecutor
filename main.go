@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -39,12 +40,20 @@ func RedisClient() *redis.Client {
 	})
 }
 
-func getStatus(redisClient *redis.Client, key string) int64 {
-	val, err := redisClient.Get(ctx, key).Int64()
+func getStatus(redisClient *redis.Client, key string) int {
+	// Get the integer value associated with the key from Redis
+	val, err := redisClient.Get(ctx, key).Result()
 	if err != nil {
 		return -1
 	}
-	return val
+
+	// Convert the retrieved string to an integer
+	intVal, err := strconv.Atoi(val)
+	if err != nil {
+		return -1
+	}
+
+	return intVal
 }
 
 func publishToQueue(redisClient *redis.Client, queueName string, key string, data interface{}) error {
@@ -62,8 +71,7 @@ func publishToQueue(redisClient *redis.Client, queueName string, key string, dat
 	}
 
 	// Set a key-value pair
-	value := getStatus(redisClient, key)
-	err = redisClient.Set(ctx, key, value+1, 0).Err()
+	err = redisClient.Set(ctx, key, 1, 0).Err()
 	if err != nil {
 		return err
 	}
@@ -88,6 +96,36 @@ func popFromInputQueue(redisClient *redis.Client, queueName string) (Submission,
 	return data, nil
 }
 
+func serializeVerdict(verdict Verdict) (string, error) {
+	verdictJSON, err := json.Marshal(verdict)
+	if err != nil {
+		return "", err
+	}
+	return string(verdictJSON), nil
+}
+
+func deserializeVerdict(verdictJSON string) (Verdict, error) {
+	var v Verdict
+	err := json.Unmarshal([]byte(verdictJSON), &v)
+	return v, err
+}
+
+func setVerdictInRedis(redisClient *redis.Client, key string, verdict Verdict) error {
+	verdictJSON, err := serializeVerdict(verdict)
+	if err != nil {
+		return err
+	}
+	return redisClient.HSet(ctx, "verdicts", key, verdictJSON).Err()
+}
+
+func getVerdictFromRedis(redisClient *redis.Client, key string) (Verdict, error) {
+	verdictJSONString, err := redisClient.HGet(ctx, "verdicts", key).Result()
+	if err != nil {
+		return Verdict{}, err
+	}
+	return deserializeVerdict(verdictJSONString)
+}
+
 func worker(id int, wg *sync.WaitGroup, redisClient *redis.Client) {
 	defer wg.Done()
 	for {
@@ -107,16 +145,31 @@ func worker(id int, wg *sync.WaitGroup, redisClient *redis.Client) {
 
 			// Now you can access the 'ID' field of 'submission'
 			// fmt.Printf("Worker %d: Received message: %s\n", id, submission.ID)
+			err := redisClient.Incr(ctx, submission.ID).Err()
+			if err != nil {
+				fmt.Println("Error incrementing status:", err)
+			}
+
 			time.Sleep(3 * time.Second)
 			// TODO: Write docker logic here.
 			output := "456"
-			res := Verdict{ID: submission.ID, Output: output}
+			verdict := Verdict{ID: submission.ID, Output: output}
 
 			if submission.Expected != "" {
-				res.Verdict = output == submission.Expected
+				verdict.Verdict = output == submission.Expected
 			}
 
-			publishToQueue(redisClient, "outputqueue", res.ID, res)
+			err = setVerdictInRedis(redisClient, verdict.ID, verdict)
+			if err != nil {
+				fmt.Println("Error setting verdict:", err)
+				return
+			}
+
+			err = redisClient.Incr(ctx, verdict.ID).Err()
+			if err != nil {
+				fmt.Println("Error incrementing status:", err)
+			}
+
 			// fmt.Printf("Worker %d: Completed: %s\n", id, submission)
 		}
 	}
@@ -132,15 +185,48 @@ func submitHandler(w http.ResponseWriter, r *http.Request, redisClient *redis.Cl
 	fmt.Fprintln(w, "Job received and queued.")
 }
 
-func statusHandler(w http.ResponseWriter, r *http.Request) {
-	// return status of key in redis input queue
-	fmt.Fprintln(w, "Job received and queued.")
+func statusHandler(w http.ResponseWriter, r *http.Request, redisClient *redis.Client) {
+	// Get the key from the request, for example, by reading a query parameter
+	id := r.URL.Query().Get("id")
+
+	// Check if the key is empty
+	if id == "" {
+		http.Error(w, "Key parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	// Get the status from Redis using the getStatus function
+	status := getStatus(redisClient, id)
+
+	// Return the status as a response
+	fmt.Fprintf(w, "Status for key %s: %d", id, status)
 }
 
-func resultHandler(w http.ResponseWriter, r *http.Request) {
-	// return result of code execution
+func resultHandler(w http.ResponseWriter, r *http.Request, redisClient *redis.Client) {
 
-	fmt.Fprintln(w, "Job received and queued.")
+	id := r.URL.Query().Get("id")
+
+	// Set the Content-Type header to indicate that the response is in JSON format
+	w.Header().Set("Content-Type", "application/json")
+
+	// Get the Verdict from Redis
+	verdict, err := getVerdictFromRedis(redisClient, id)
+
+	if err != nil {
+		http.Error(w, "Error getting verdict from Redis", http.StatusInternalServerError)
+		return
+	}
+
+	// Marshal the verdict struct to JSON
+	verdictJSON, err := json.Marshal(verdict)
+	if err != nil {
+		http.Error(w, "Error marshaling verdict to JSON", http.StatusInternalServerError)
+		return
+	}
+
+	// Write the JSON response to the HTTP response writer
+	w.WriteHeader(http.StatusOK)
+	w.Write(verdictJSON)
 }
 
 func main() {
@@ -188,12 +274,18 @@ func main() {
 	// Create a Gorilla Mux router
 	router := mux.NewRouter()
 
-	// // Define routes
+	// Define routes
 	router.HandleFunc("/submit", func(w http.ResponseWriter, r *http.Request) {
 		submitHandler(w, r, redisClient)
 	}).Methods("POST")
-	router.HandleFunc("/status", statusHandler).Methods("GET")
-	router.HandleFunc("/result", resultHandler).Methods("GET")
+
+	router.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+		statusHandler(w, r, redisClient)
+	}).Methods("GET")
+
+	router.HandleFunc("/result", func(w http.ResponseWriter, r *http.Request) {
+		resultHandler(w, r, redisClient)
+	}).Methods("GET")
 
 	// // Start the HTTP server
 	http.Handle("/", router)
