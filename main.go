@@ -176,13 +176,23 @@ func worker(id int, wg *sync.WaitGroup, redisClient *redis.Client) {
 }
 
 func submitHandler(w http.ResponseWriter, r *http.Request, redisClient *redis.Client) {
-	// generate unique ID
-	// publishToQueue input queue, set status=queued
-	// key := "abcd1234"
-	// value := Submission{ID: key, Code: "this is C++ code", Lang: "C++"}
-	// publishToQueue(redisClient, "inputqueue", key, value)
 
-	fmt.Fprintln(w, "Job received and queued.")
+	// Parse the request body
+	var submission Submission
+	err := json.NewDecoder(r.Body).Decode(&submission)
+	if err != nil {
+		http.Error(w, "Failed to parse request body", http.StatusBadRequest)
+		return
+	}
+
+	// Generate a timestamp-based unique ID
+	timestamp := time.Now().UnixNano() / int64(time.Millisecond)
+	uniqueID := strconv.FormatInt(timestamp, 10)
+
+	submission.ID = uniqueID
+
+	publishToQueue(redisClient, "inputqueue", uniqueID, submission)
+	fmt.Fprintf(w, "Job received and queued: %s", uniqueID)
 }
 
 func statusHandler(w http.ResponseWriter, r *http.Request, redisClient *redis.Client) {
