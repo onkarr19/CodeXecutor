@@ -126,6 +126,22 @@ func getVerdictFromRedis(redisClient *redis.Client, key string) (Verdict, error)
 	return deserializeVerdict(verdictJSONString)
 }
 
+func popOutFromRedis(redisClient *redis.Client, id string) error {
+	// Remove the value associated with the ID from a hash (if it's stored in a hash)
+	err := redisClient.HDel(ctx, "verdicts", id).Err()
+	if err != nil {
+		return err
+	}
+
+	// Remove the value associated with the ID from a regular key-value store
+	err = redisClient.Del(ctx, id).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func worker(id int, wg *sync.WaitGroup, redisClient *redis.Client) {
 	defer wg.Done()
 	for {
@@ -230,6 +246,7 @@ func resultHandler(w http.ResponseWriter, r *http.Request, redisClient *redis.Cl
 		http.Error(w, "Error getting verdict from Redis", http.StatusInternalServerError)
 		return
 	}
+	popOutFromRedis(redisClient, id)
 
 	// Marshal the verdict struct to JSON
 	verdictJSON, err := json.Marshal(verdict)
