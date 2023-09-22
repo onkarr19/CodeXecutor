@@ -139,7 +139,7 @@ func worker(id int, wg *sync.WaitGroup, redisClient *redis.Client) {
 			} else {
 				// Handle other Redis-related errors here, e.g., reconnect to Redis or log the error
 				fmt.Printf("Worker %d: Error: %v\n", id, err)
-				continue
+				break
 			}
 		} else {
 
@@ -191,7 +191,11 @@ func submitHandler(w http.ResponseWriter, r *http.Request, redisClient *redis.Cl
 
 	submission.ID = uniqueID
 
-	publishToQueue(redisClient, "inputqueue", uniqueID, submission)
+	err = publishToQueue(redisClient, "inputqueue", uniqueID, submission)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	fmt.Fprintf(w, "Job received and queued: %s", uniqueID)
 }
 
@@ -240,32 +244,6 @@ func resultHandler(w http.ResponseWriter, r *http.Request, redisClient *redis.Cl
 }
 
 func main() {
-	/* Sample Execution of workers
-
-	const numWorkers = 5
-	const numJobs = 13
-
-	jobs := make(chan int, numJobs)
-	var wg sync.WaitGroup
-
-	// Start worker goroutines
-	for i := 1; i <= numWorkers; i++ {
-		wg.Add(1)
-		fmt.Println("sending ", i)
-		go worker(i, jobs, &wg)
-	}
-
-	for j := 1; j <= numJobs; j++ {
-		jobs <- j
-	}
-
-	// Close the jobs channel to signal that no more jobs will be added
-	close(jobs)
-
-	// Wait for all workers to finish
-	wg.Wait()
-
-	*/
 
 	// Create a redis client
 	redisClient := RedisClient()
@@ -305,7 +283,7 @@ func main() {
 	wg.Wait()
 
 	// Close the Redis client when done
-	// if err := redisClient.Close(); err != nil {
-	// 	fmt.Printf("Error closing Redis client: %v\n", err)
-	// }
+	if err := redisClient.Close(); err != nil {
+		fmt.Printf("Error closing Redis client: %v\n", err)
+	}
 }
