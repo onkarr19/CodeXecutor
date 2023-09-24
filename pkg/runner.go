@@ -126,7 +126,7 @@ func ExecuteAndCleanupContainer(code, inputData, language string) (string, error
 		},
 		"Python": {
 			ImageName: "python:3.9",
-			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > solution.py > input.txt && python solution.py"},
+			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > solution.py && python solution.py"},
 		},
 		"Java": {
 			ImageName: "openjdk:11.0.12",
