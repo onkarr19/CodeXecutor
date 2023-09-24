@@ -41,6 +41,7 @@ func executeCodeInContainer(code string, languageConfig LanguageConfig) (string,
 	containerConfig := &container.Config{
 		Image: languageConfig.ImageName,
 		Cmd:   languageConfig.Cmd,
+		Env:   []string{fmt.Sprintf("CODE=%s", code)},
 	}
 
 	// Wait for the container to finish, with a timeout of 5 seconds
@@ -113,28 +114,28 @@ func ExecuteAndCleanupContainer(code, language string) (string, error) {
 
 	languageConfigs := map[string]LanguageConfig{
 		"C": {
-			ImageName: "c_image_name_here",
-			Cmd:       []string{"gcc", "your_c_program.c", "-o", "output", "&&", "./output"},
+			ImageName: "gcc:latest",
+			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > solution.c && gcc solution.c -o output && ./output"},
 		},
 		"C++": {
 			ImageName: "gcc:latest",
-			Cmd:       []string{"sh", "-c", "echo \"$CODE\" > code.cpp && g++ code.cpp -o output && ./output", code},
+			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > solution.cpp && g++ solution.cpp -o output && ./output"},
 		},
 		"Python": {
 			ImageName: "python:3.9",
-			Cmd:       []string{"python", "-c", code},
+			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > solution.py && python solution.py"},
 		},
 		"Java": {
-			ImageName: "java_image_name_here",
-			Cmd:       []string{"java", "-jar", "your_jar_file.jar"},
+			ImageName: "openjdk:latest",
+			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > Solution.java && javac Solution.java && java Solution"},
 		},
 		"JavaScript": {
-			ImageName: "nodejs_image_name_here",
-			Cmd:       []string{"node", "your_javascript_program.js"},
+			ImageName: "node:latest",
+			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > solution.js && node solution.js"},
 		},
 		"Go": {
-			ImageName: "golang_image_name_here",
-			Cmd:       []string{"go", "run", "your_golang_program.go"},
+			ImageName: "golang:latest",
+			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > main.go && go run main.go"},
 		},
 	}
 
@@ -152,19 +153,4 @@ func ExecuteAndCleanupContainer(code, language string) (string, error) {
 	}
 
 	return output, nil
-}
-
-func main() {
-	// Example usage
-	code :=
-		`print("Hello World!")
-`
-	language := "Python"
-
-	output, err := ExecuteAndCleanupContainer(code, language)
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-	} else {
-		fmt.Printf("Output: %s\n", output)
-	}
 }
