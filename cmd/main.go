@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"executionserver/pkg"
+
 	"github.com/gorilla/mux"
 	"github.com/redis/go-redis/v9"
 )
@@ -23,6 +25,7 @@ type Submission struct {
 	ID       string `json:"id"`
 	Code     string `json:"code"`
 	Lang     string `json:"lang"`
+	Input    string `json:"input"`
 	Expected string `json:"expected"`
 }
 
@@ -166,9 +169,9 @@ func worker(id int, wg *sync.WaitGroup, redisClient *redis.Client) {
 				fmt.Println("Error incrementing status:", err)
 			}
 
-			time.Sleep(3 * time.Second)
-			// TODO: Write docker logic here.
-			output := "456"
+			// time.Sleep(3 * time.Second)
+			output, _ := pkg.ExecuteAndCleanupContainer(submission.Code, submission.Input, submission.Lang)
+
 			verdict := Verdict{ID: submission.ID, Output: output}
 
 			if submission.Expected != "" {
@@ -294,6 +297,7 @@ func main() {
 
 	// // Start the HTTP server
 	http.Handle("/", router)
+	fmt.Println("Server listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 
 	// Wait for all workers to finish.
