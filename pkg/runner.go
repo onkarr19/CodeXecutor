@@ -114,11 +114,11 @@ func ExecuteAndCleanupContainer(code, language string) (string, error) {
 
 	languageConfigs := map[string]LanguageConfig{
 		"C": {
-			ImageName: "gcc:latest",
+			ImageName: "gcc:10.3",
 			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > solution.c && gcc solution.c -o output && ./output"},
 		},
 		"C++": {
-			ImageName: "gcc:latest",
+			ImageName: "gcc:10.3",
 			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > solution.cpp && g++ solution.cpp -o output && ./output"},
 		},
 		"Python": {
@@ -126,15 +126,15 @@ func ExecuteAndCleanupContainer(code, language string) (string, error) {
 			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > solution.py && python solution.py"},
 		},
 		"Java": {
-			ImageName: "openjdk:latest",
+			ImageName: "openjdk:11.0.12",
 			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > Solution.java && javac Solution.java && java Solution"},
 		},
 		"JavaScript": {
-			ImageName: "node:latest",
+			ImageName: "node:14.17",
 			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > solution.js && node solution.js"},
 		},
 		"Go": {
-			ImageName: "golang:latest",
+			ImageName: "golang:1.21",
 			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > main.go && go run main.go"},
 		},
 	}
