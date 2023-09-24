@@ -53,7 +53,7 @@ func executeCodeInContainer(code, inputData string, languageConfig LanguageConfi
 	defer cancel()
 
 	// Create a Docker container
-	fmt.Println("Creating Docker container...")
+	// fmt.Println("Creating Docker container...")
 	resp, err := cli.ContainerCreate(
 		ctx,
 		containerConfig,
@@ -67,7 +67,7 @@ func executeCodeInContainer(code, inputData string, languageConfig LanguageConfi
 	}
 
 	// Start the Docker container
-	fmt.Println("Starting Docker container...")
+	// fmt.Println("Starting Docker container...")
 	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		return "", resp.ID, err
 	}
@@ -84,7 +84,7 @@ func executeCodeInContainer(code, inputData string, languageConfig LanguageConfi
 	}
 
 	// Retrieve container logs
-	fmt.Println("Retrieving container logs...")
+	// fmt.Println("Retrieving container logs...")
 	out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true})
 	if err != nil {
 		return "", resp.ID, err
@@ -101,7 +101,7 @@ func executeCodeInContainer(code, inputData string, languageConfig LanguageConfi
 
 // remove the container
 func removeDockerContainer(containerID string) error {
-	fmt.Println("Removing Docker container...")
+	// fmt.Println("Removing Docker container...")
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return err
@@ -126,7 +126,7 @@ func ExecuteAndCleanupContainer(code, inputData, language string) (string, error
 		},
 		"Python": {
 			ImageName: "python:3.9",
-			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > solution.py && echo \"$INPUT_DATA\" > input.txt && python solution.py"},
+			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > solution.py > input.txt && python solution.py"},
 		},
 		"Java": {
 			ImageName: "openjdk:11.0.12",
