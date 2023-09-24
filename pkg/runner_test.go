@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -62,7 +63,11 @@ int main() {
 			expected: "Hello, JavaScript in Docker!\n",
 		},
 		{
-			code:     `fmt.Println("Hello, Go in Docker!")`,
+			code: `package main
+import( "fmt") 
+func main() {
+fmt.Println("Hello, Go in Docker!")
+}`,
 			language: "Go",
 			expected: "Hello, Go in Docker!\n",
 		},
@@ -85,6 +90,7 @@ int main() {
 			if strings.Compare(output, test.expected) == 0 {
 				t.Errorf("Expected: %s, Got: %s", test.expected, output)
 			}
+			fmt.Println(output)
 		})
 	}
 }
