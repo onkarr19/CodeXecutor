@@ -20,7 +20,7 @@ type LanguageConfig struct {
 }
 
 // ExecuteCodeInContainer runs the provided code in a Docker container with the specified language dependency.
-func executeCodeInContainer(code string, languageConfig LanguageConfig) (string, string, error) {
+func executeCodeInContainer(code, inputData string, languageConfig LanguageConfig) (string, string, error) {
 
 	// Initialize Docker client
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -41,7 +41,10 @@ func executeCodeInContainer(code string, languageConfig LanguageConfig) (string,
 	containerConfig := &container.Config{
 		Image: languageConfig.ImageName,
 		Cmd:   languageConfig.Cmd,
-		Env:   []string{fmt.Sprintf("CODE=%s", code)},
+		Env: []string{
+			fmt.Sprintf("CODE=%s", code),
+			fmt.Sprintf("INPUT_DATA=%s", inputData),
+		},
 	}
 
 	// Wait for the container to finish, with a timeout of 5 seconds
@@ -110,20 +113,20 @@ func removeDockerContainer(containerID string) error {
 	return nil
 }
 
-func ExecuteAndCleanupContainer(code, language string) (string, error) {
+func ExecuteAndCleanupContainer(code, inputData, language string) (string, error) {
 
 	languageConfigs := map[string]LanguageConfig{
 		"C": {
 			ImageName: "gcc:10.3",
-			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > solution.c && gcc solution.c -o output && ./output"},
+			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > solution.c && gcc solution.c -o output && echo \"$INPUT_DATA\" | ./output"},
 		},
 		"C++": {
 			ImageName: "gcc:10.3",
-			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > solution.cpp && g++ solution.cpp -o output && ./output"},
+			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > solution.cpp && g++ solution.cpp -o output && echo \"$INPUT_DATA\" | ./output"},
 		},
 		"Python": {
 			ImageName: "python:3.9",
-			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > solution.py && python solution.py"},
+			Cmd:       []string{"bash", "-c", "echo \"$CODE\" > solution.py && echo \"$INPUT_DATA\" > input.txt && python solution.py"},
 		},
 		"Java": {
 			ImageName: "openjdk:11.0.12",
@@ -145,7 +148,7 @@ func ExecuteAndCleanupContainer(code, language string) (string, error) {
 	}
 
 	// execute the container
-	output, containerID, err := executeCodeInContainer(code, languageConfig)
+	output, containerID, err := executeCodeInContainer(code, inputData, languageConfig)
 	// remove the container
 	removeDockerContainer(containerID)
 	if err != nil {

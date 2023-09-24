@@ -10,6 +10,7 @@ func TestExecuteAndCleanupContainer(t *testing.T) {
 		code     string
 		language string
 		expected string
+		input    string
 	}{
 		{
 			code:     `console.log("Hello, Node.js in Docker!");`,
@@ -17,19 +18,34 @@ func TestExecuteAndCleanupContainer(t *testing.T) {
 			expected: "Hello, Node.js in Docker!\n",
 		},
 		{
-			code:     `printf("Hello, C in Docker!\n");`,
+			code: `#include<stdio.h>
+#include<string.h>
+int main() {
+	char s[100]; scanf("%s", s);
+	printf("Hello, C in %s!\n", s);
+	return 0;
+}`,
 			language: "C",
+			input:    "Docker",
 			expected: "Hello, C in Docker!\n",
 		},
 		{
-			code:     `printf("Hello, C++ in Docker!\n");`,
+			code: `#include<iostream>
+using namespace std;
+int main() {
+	string s; cin>>s;
+	cout << "Hello, C++ in " << s << "!";
+	return 0;
+}`,
 			language: "C++",
 			expected: "Hello, C++ in Docker!\n",
+			input:    "Docker",
 		},
 		{
-			code:     `print("Hello, Python in Docker!");`,
+			code:     `print("Hello, Python in Docker!")`,
 			language: "Python",
 			expected: "Hello, Python in Docker!",
+			input:    "Docker",
 		},
 		{
 			code: `public class Solution {
@@ -60,7 +76,7 @@ func TestExecuteAndCleanupContainer(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.language, func(t *testing.T) {
-			output, err := ExecuteAndCleanupContainer(test.code, test.language)
+			output, err := ExecuteAndCleanupContainer(test.code, test.input, test.language)
 			if err != nil {
 				if !strings.Contains(err.Error(), test.expected) {
 					t.Errorf("Expected Error: %s, Got: %s", test.expected, err.Error())
