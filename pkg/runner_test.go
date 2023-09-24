@@ -52,8 +52,8 @@ func TestExecuteAndCleanupContainer(t *testing.T) {
 		},
 		{
 			code:     `echo "Hello, World!"`,
-			language: "UnknownLanguage", // Testing an unsupported language
-			expected: "",                // Expect an error message
+			language: "UnknownLanguage",                           // Testing an unsupported language
+			expected: "language UnknownLanguage is not supported", // Expect an error message
 		},
 		// Add more test cases for other languages and scenarios
 	}
@@ -62,7 +62,9 @@ func TestExecuteAndCleanupContainer(t *testing.T) {
 		t.Run(test.language, func(t *testing.T) {
 			output, err := ExecuteAndCleanupContainer(test.code, test.language)
 			if err != nil {
-				t.Errorf("Error: %v", err)
+				if !strings.Contains(err.Error(), test.expected) {
+					t.Errorf("Expected Error: %s, Got: %s", test.expected, err.Error())
+				}
 			}
 			if strings.Compare(output, test.expected) == 0 {
 				t.Errorf("Expected: %s, Got: %s", test.expected, output)
