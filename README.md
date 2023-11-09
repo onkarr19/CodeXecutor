@@ -9,6 +9,8 @@ CodeXecutor/
 ├── README.md       # Project documentation and instructions
 ├── cmd/            # Command-line application code
 │   └── main.go     # Main application entry point
+├── config/
+│   └── redis.go    # Redis Configuration 
 ├── go.mod          # Go module file (dependency management)
 ├── go.sum          # Go dependencies checksum file
 ├── internal/       # Internal application code
