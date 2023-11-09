@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"CodeXecutor/config"
 	"CodeXecutor/models"
 	"CodeXecutor/pkg/redis"
 	"CodeXecutor/utils"
@@ -27,7 +28,7 @@ func HandleCodeSubmission(w http.ResponseWriter, r *http.Request) {
 	defer client.Close()
 
 	// Specify the Redis queue name for code submissions
-	queueName := "code-submissions"
+	queueName := config.RedisQueueName
 
 	err = redis.EnqueueCodeSubmission(client, queueName, job)
 	if err != nil {

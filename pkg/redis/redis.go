@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"CodeXecutor/config"
 	"CodeXecutor/models"
 	"context"
 	"encoding/json"
@@ -9,11 +10,12 @@ import (
 )
 
 func ConnectRedis() *redis.Client {
+	cfg := config.NewRedisConfig()
 	// Initialize and return a connection to your Redis instance
 	client := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379", // Redis server address
-		Password: "",               // No password by default
-		DB:       0,                // Default redis database
+		Addr:     cfg.Addr,
+		Password: cfg.Password,
+		DB:       cfg.DB,
 	})
 
 	// Check if the connection to Redis is successful
