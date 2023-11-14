@@ -1,12 +1,10 @@
 package models
 
-import "time"
-
 type Job struct {
-	ID       string    `json:"id"`       // unique identifier
-	Language string    `json:"language"` // Programming language used in the code
-	Code     string    `json:"code"`     // The user's code
-	Time     time.Time `json:"time"`     // The time of submission
+	ID       string `json:"id"`       // unique identifier
+	Language string `json:"language"` // Programming language used in the code
+	Code     string `json:"code"`     // The user's code
+	Time     int    `json:"time"`     // The time of submission
 }
 
 // DockerConfig represents the configuration for the Docker container.
