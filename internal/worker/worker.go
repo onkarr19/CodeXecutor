@@ -7,11 +7,6 @@ import (
 	"sync"
 )
 
-// // Job represents a code compilation job.
-// type Job struct {
-// 	// Add job-related fields here, e.g., code, language, etc.
-// }
-
 // Worker represents a worker that handles code compilation jobs.
 type Worker struct {
 	ctx      context.Context
@@ -34,29 +29,13 @@ func (w *Worker) Start(wg *sync.WaitGroup) {
 
 	for {
 		select {
-		case _, ok := <-w.jobQueue:
+		case job, ok := <-w.jobQueue:
 			if !ok {
 				// Job queue has been closed, exit the worker
 				return
 			}
 
-			// Handle the code compilation job here
-			containerID, err := GenerateDockerContainer(w.ctx, nil, models.DockerConfig{})
-			if err != nil {
-				log.Printf("Error generating Docker container: %v\n", err)
-				// Handle the error appropriately
-				continue
-			}
-
-			// Wait for code execution to complete (you may implement this logic)
-			// ...
-
-			// Remove the Docker container
-			if err := StopAndRemoveContainer(w.ctx, nil, containerID); err != nil {
-				log.Printf("Error stopping and removing Docker container: %v\n", err)
-				// Handle the error appropriately
-				continue
-			}
+			w.handleJob(job)
 
 		case <-w.ctx.Done():
 			{
@@ -64,5 +43,27 @@ func (w *Worker) Start(wg *sync.WaitGroup) {
 				return
 			}
 		}
+	}
+}
+
+func (w *Worker) handleJob(job models.Job) {
+	// Handle the code compilation job here
+	containerID, err := GenerateAndStartContainer(w.ctx, nil, models.DockerConfig{
+		Image:    "your_docker_image", // Provide the actual Docker image name
+		Language: job.Language,
+		Code:     job.Code,
+	})
+
+	if err != nil {
+		log.Printf("Error generating Docker container: %v\n", err)
+		// Handle the error appropriately
+		return
+	}
+
+	// Remove the Docker container
+	if err := StopAndRemoveContainer(w.ctx, nil, containerID); err != nil {
+		log.Printf("Error stopping and removing Docker container: %v\n", err)
+		// Handle the error appropriately
+		return
 	}
 }

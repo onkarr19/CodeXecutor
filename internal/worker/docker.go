@@ -11,8 +11,8 @@ import (
 	"github.com/docker/docker/client"
 )
 
-// GenerateDockerContainer dynamically generates a Docker container for code execution.
-func GenerateDockerContainer(ctx context.Context, client *client.Client, config models.DockerConfig) (string, error) {
+// GenerateAndStartContainer dynamically generates a Docker container for code execution.
+func GenerateAndStartContainer(ctx context.Context, client *client.Client, config models.DockerConfig) (string, error) {
 	// Create a container configuration
 	containerConfig := &container.Config{
 		Image:        config.Image,
