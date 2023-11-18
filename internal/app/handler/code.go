@@ -6,7 +6,6 @@ import (
 	"CodeXecutor/pkg/redis"
 	"CodeXecutor/utils"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -20,8 +19,6 @@ func HandleCodeSubmission(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	fmt.Println(job)
 
 	// Enqueue the code submission in Redis for processing
 	client := redis.ConnectRedis()
@@ -59,7 +56,6 @@ func extractCodeSubmission(r *http.Request) (models.Job, error) {
 	if err := json.Unmarshal(body, &job); err != nil {
 		log.Printf("Failed to unmarshal JSON: %v", err)
 		// Handle the error and return an appropriate response
-		fmt.Println(string(body))
 		return models.Job{}, err
 	}
 
