@@ -2,6 +2,7 @@ package worker
 
 import (
 	"CodeXecutor/models"
+	"CodeXecutor/pkg/redis"
 	"context"
 	"log"
 	"sync"
@@ -64,6 +65,22 @@ func (wp *WorkerPool) startWorkers(count int) {
 // SubmitJob submits a job to the worker pool.
 func (wp *WorkerPool) SubmitJob(job models.Job) {
 	wp.jobQueue <- job
+}
+
+func PullData(wp *WorkerPool, queueName string) {
+	client := redis.ConnectRedis()
+	defer client.Close()
+	for {
+		// Dequeue item from Redis queue
+		job, err := redis.DequeueItem(client, queueName)
+		if err != nil {
+			log.Println("Error dequeueing item from Redis:", err)
+			continue
+		}
+
+		// Submit the job to the worker pool
+		wp.SubmitJob(job)
+	}
 }
 
 // Stop stops the worker pool and all workers.

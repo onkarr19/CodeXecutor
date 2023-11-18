@@ -40,14 +40,16 @@ func EnqueueItem(client *redis.Client, queueName string, codeSubmission models.J
 
 func DequeueItem(client *redis.Client, queueName string) (models.Job, error) {
 	// Dequeue the JSON string from the Redis list
-	result, err := client.RPop(context.Background(), queueName).Result()
+	result, err := client.BRPop(context.Background(), 0, queueName).Result()
 	if err != nil {
 		return models.Job{}, err
 	}
 
+	value := result[1]
+
 	// Convert the JSON string back to the codeSubmission struct
 	var codeSubmission models.Job
-	err = json.Unmarshal([]byte(result), &codeSubmission)
+	err = json.Unmarshal([]byte(value), &codeSubmission)
 	if err != nil {
 		return models.Job{}, err
 	}

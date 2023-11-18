@@ -1,6 +1,7 @@
 package main
 
 import (
+	"CodeXecutor/config"
 	"CodeXecutor/internal/app"
 	"CodeXecutor/internal/worker"
 	"context"
@@ -17,6 +18,9 @@ func main() {
 	// Initialize the dynamic worker pool with min and max worker limits
 	workerPool := worker.NewWorkerPool(ctx, 1, 4)
 	defer workerPool.Stop()
+
+	// Initialize the data pulling loop
+	go worker.PullData(workerPool, config.RedisQueueName)
 
 	// Monitor system load and adjust the worker pool size as needed
 	// Implement logic to scale workers up or down based on the load
