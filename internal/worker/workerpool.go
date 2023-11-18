@@ -55,7 +55,7 @@ func (wp *WorkerPool) startWorkers(count int) {
 	workersToAdd := min(count, wp.maxWorkers-len(wp.workers))
 
 	for i := 0; i < workersToAdd; i++ {
-		w := NewWorker(wp.ctx, wp.jobQueue)
+		w := NewWorker(wp.jobQueue)
 		wp.workers = append(wp.workers, w)
 		wp.wg.Add(1)
 		go w.Start(&wp.wg)
