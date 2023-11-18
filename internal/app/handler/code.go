@@ -30,7 +30,7 @@ func HandleCodeSubmission(w http.ResponseWriter, r *http.Request) {
 	// Specify the Redis queue name for code submissions
 	queueName := config.RedisQueueName
 
-	err = redis.EnqueueCodeSubmission(client, queueName, job)
+	err = redis.EnqueueItem(client, queueName, job)
 	if err != nil {
 		log.Printf("Failed to enqueue code submission: %v", err)
 		// Handle the error and respond to the user with an error message

@@ -27,27 +27,27 @@ func ConnectRedis() *redis.Client {
 	return client
 }
 
-func EnqueueCodeSubmission(client *redis.Client, queueName string, codeSubmission models.Job) error {
+func EnqueueItem(client *redis.Client, queueName string, codeSubmission models.Job) error {
 	// Convert the codeSubmission struct to a JSON string
-	codeSubmissionJSON, err := json.Marshal(codeSubmission)
+	result, err := json.Marshal(codeSubmission)
 	if err != nil {
 		return err
 	}
 
 	// Enqueue the JSON string in the Redis list
-	return client.LPush(context.Background(), queueName, codeSubmissionJSON).Err()
+	return client.LPush(context.Background(), queueName, result).Err()
 }
 
-func DequeueCodeSubmission(client *redis.Client, queueName string) (models.Job, error) {
+func DequeueItem(client *redis.Client, queueName string) (models.Job, error) {
 	// Dequeue the JSON string from the Redis list
-	codeSubmissionJSON, err := client.RPop(context.Background(), queueName).Result()
+	result, err := client.RPop(context.Background(), queueName).Result()
 	if err != nil {
 		return models.Job{}, err
 	}
 
 	// Convert the JSON string back to the codeSubmission struct
 	var codeSubmission models.Job
-	err = json.Unmarshal([]byte(codeSubmissionJSON), &codeSubmission)
+	err = json.Unmarshal([]byte(result), &codeSubmission)
 	if err != nil {
 		return models.Job{}, err
 	}
