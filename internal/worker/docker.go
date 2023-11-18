@@ -1,19 +1,19 @@
 package worker
 
 import (
-	"context"
+	"fmt"
+	"io"
 	"log"
+	"time"
 
 	"CodeXecutor/models"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
 )
 
 // GenerateAndStartContainer dynamically generates a Docker container for code execution.
-func GenerateAndStartContainer(ctx context.Context, client *client.Client, config models.DockerConfig) (string, error) {
-	// Create a container configuration
+func (w *Worker) GenerateAndStartContainer(config models.DockerConfig) (string, string, error) {
 	containerConfig := &container.Config{
 		Image:        config.Image,
 		AttachStdin:  true,
@@ -22,44 +22,75 @@ func GenerateAndStartContainer(ctx context.Context, client *client.Client, confi
 		Tty:          true,
 		OpenStdin:    true,
 		StdinOnce:    true,
-		Cmd:          []string{config.Language, "-c", config.Code}, // Customize this based on the image and code execution method
+		Cmd:          []string{config.Language, "-c", config.Code},
 	}
 
-	// Create a container host configuration
 	hostConfig := &container.HostConfig{}
 
-	// Create the container
-	resp, err := client.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, "my-coding-platform-container")
+	resp, err := w.client.ContainerCreate(w.ctx, containerConfig, hostConfig, nil, nil, time.Now().Format("20060102150405"))
 	if err != nil {
 		log.Printf("Error creating container: %v\n", err)
-		return "", err
+		return "", "", err
 	}
 
-	// Start the container
-	if err := client.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+	if err := w.client.ContainerStart(w.ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		log.Printf("Error starting container: %v\n", err)
-		return "", err
+		return "", "", err
 	}
 
-	return resp.ID, nil
+	// Wait for the container to finish
+	waitResultCh, errCh := w.client.ContainerWait(w.ctx, resp.ID, container.WaitConditionNotRunning)
+	select {
+	case waitResult := <-waitResultCh:
+		if waitResult.StatusCode != 0 {
+			log.Printf("Container exited with non-zero status code: %d\n", waitResult.StatusCode)
+			return resp.ID, "", fmt.Errorf("container exited with non-zero status code: %d", waitResult.StatusCode)
+		}
+	case err := <-errCh:
+		if err != nil {
+			log.Printf("Error waiting for container to finish: %v\n", err)
+
+			return resp.ID, "", err
+		}
+	case <-w.ctx.Done():
+		log.Printf("Context canceled while waiting for container to finish.\n")
+		return resp.ID, "", w.ctx.Err()
+	}
+
+	// Capture container output
+	out, err := w.client.ContainerLogs(w.ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true})
+	if err != nil {
+		log.Printf("Error retrieving container logs: %v\n", err)
+		return resp.ID, "", err
+	}
+	defer out.Close()
+
+	// Read the output
+	output, err := io.ReadAll(out)
+	if err != nil {
+		log.Printf("Error reading container logs: %v\n", err)
+		return "", "", err
+	}
+
+	// log.Printf("Container output:\n%s\n", output)
+
+	return resp.ID, string(output), nil
 }
 
 // StopAndRemoveContainer stops and removes a Docker container.
-func StopAndRemoveContainer(ctx context.Context, client *client.Client, containerID string) error {
-	timeout := int(10) // Adjust the timeout as needed
+func (w *Worker) StopAndRemoveContainer(containerID string) error {
+	timeout := int(10)
 
 	stopOptions := container.StopOptions{
 		Timeout: &timeout,
 	}
 
-	// Stop the container
-	if err := client.ContainerStop(ctx, containerID, stopOptions); err != nil {
+	if err := w.client.ContainerStop(w.ctx, containerID, stopOptions); err != nil {
 		log.Printf("Error stopping container: %v\n", err)
 		return err
 	}
 
-	// Remove the container
-	if err := client.ContainerRemove(ctx, containerID, types.ContainerRemoveOptions{}); err != nil {
+	if err := w.client.ContainerRemove(w.ctx, containerID, types.ContainerRemoveOptions{}); err != nil {
 		log.Printf("Error removing container: %v\n", err)
 		return err
 	}
