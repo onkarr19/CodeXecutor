@@ -26,6 +26,8 @@ func (s *Server) Start() {
 			log.Fatalf("HTTP server error: %v", err)
 		}
 	}()
+
+	log.Println("Server started on localhost:8080")
 }
 
 // Stop gracefully stops the application server.
