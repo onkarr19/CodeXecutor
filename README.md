@@ -6,33 +6,33 @@ This project provides an HTTP server in Go that enables you to run code in an is
 ## Project Structure
 ```
 CodeXecutor/
-├── Makefile        # Project dependencies
-├── README.md       # Project documentation and instructions
-├── cmd/            # Command-line application code
-│   └── main.go     # Main application entry point
+├── Makefile                    # Project dependencies
+├── README.md                   # Project documentation and instructions
+├── cmd/                        # Command-line application code
+│   └── main.go                 # Main application entry point
 ├── config/
-│   └── redis.go    # Redis Configuration 
-├── go.mod          # Go module file (dependency management)
-├── go.sum          # Go dependencies checksum file
-├── internal/       # Internal application code
-│   ├── app/        # Application-specific code
+│   └── redis.go                # Redis Configuration 
+├── go.mod                      # Go module file (dependency management)
+├── go.sum                      # Go dependencies checksum file
+├── internal/                   # Internal application code
+│   ├── app/                    # Application-specific code
 │   │   ├── handler/
-│   │   │   └── code.go  # Code handling logic
-│   │   └── server.go    # Application server code
+│   │   │   └── code.go         # Code handling logic
+│   │   └── server.go           # Application-server code
 │   └── worker/
-│       ├── docker.go       # Docker container logic
-│       ├── worker.go       # Worker-specific code
-│       └── workerpool.go   # Workerpool management
-├── models/         # Data models
-│   ├── job.go      # Job-related data models
-├── pkg/            # Reusable packages and libraries
-│   ├── redis/      # Redis-related code
-│   │   └── redis.go     # Redis connection code
-├── tmp/            # Temporary files or logs
-│   ├── build-errors.log  # Build error logs
-│   └── main/        # Compiled application or binary
-└── utils/          # Utility code
-    └── helper.go   # Helper functions and utilities
+│       ├── docker.go           # Docker container logic
+│       ├── worker.go           # Worker-specific code
+│       └── workerpool.go       # Workerpool management
+├── models/
+│   ├── job.go                  # Job-related data models
+├── pkg/
+│   ├── redis/                  # Redis-related code
+│   │   └── redis.go            # Redis connection code
+├── tmp/
+│   ├── build-errors.log        # Build error logs
+│   └── main/                   # Compiled application or binary
+└── utils/
+    └── helper.go               # Helper functions and utilities
 ```
 
 ## Usage
