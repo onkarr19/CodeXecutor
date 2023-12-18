@@ -28,6 +28,8 @@ CodeXecutor/
 ├── pkg/
 │   ├── redis/                  # Redis-related code
 │   │   └── redis.go            # Redis connection code
+├── scripts/
+│   ├── pull_images.sh          # required docker images 
 ├── tmp/
 │   ├── build-errors.log        # Build error logs
 │   └── main/                   # Compiled application or binary
@@ -36,15 +38,23 @@ CodeXecutor/
 ```
 
 ## Usage
+
+### Download docker images
+Make sure to give execute permissions to the script:
+```bash
+chmod +x scripts/pull_images.sh
+./scripts/pull_images.sh
+```
+
+
 ### Starting Dependencies
 ```bash
 make start-services
 ```
 This command initiates the necessary services for the project to function properly. Make sure you have Docker and Docker Compose installed on your system.
 
+
 ### Running the Server
-
-
 ```bash
 run run ./cmd
 ```
