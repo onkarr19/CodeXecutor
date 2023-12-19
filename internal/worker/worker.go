@@ -2,11 +2,14 @@ package worker
 
 import (
 	"CodeXecutor/models"
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"sync"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
 
@@ -70,7 +73,7 @@ func (w *Worker) handleJob(job models.Job) {
 		return
 	}
 
-	containerID, output, err := w.GenerateAndStartContainer(models.DockerConfig{
+	containerID, err := w.GenerateAndStartContainer(models.DockerConfig{
 		Image:    image,
 		Language: job.Language,
 		Code:     job.Code,
@@ -79,8 +82,15 @@ func (w *Worker) handleJob(job models.Job) {
 	if err != nil {
 		log.Printf("Error generating Docker container: %v\n", err)
 		// Handle the error appropriately
+	}
+
+	// Retrieve container logs
+	logs, err := w.getContainerLogs(containerID)
+	if err != nil {
+		log.Printf("Error getting container logs: %v\n", err)
+		// Handle the error appropriately
 	} else {
-		fmt.Println("Output", output)
+		fmt.Println("Logs:", logs)
 	}
 
 	// Remove the Docker container
@@ -89,4 +99,15 @@ func (w *Worker) handleJob(job models.Job) {
 		// Handle the error appropriately
 		return
 	}
+}
+
+func (w *Worker) getContainerLogs(containerID string) (string, error) {
+	var logsBuffer bytes.Buffer
+	out, err := w.client.ContainerLogs(w.ctx, containerID, types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true})
+	if err != nil {
+		return "", err
+	}
+	defer out.Close()
+	io.Copy(&logsBuffer, out)
+	return logsBuffer.String(), nil
 }

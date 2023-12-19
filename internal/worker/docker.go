@@ -2,7 +2,6 @@ package worker
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"time"
 
@@ -13,7 +12,7 @@ import (
 )
 
 // GenerateAndStartContainer dynamically generates a Docker container for code execution.
-func (w *Worker) GenerateAndStartContainer(config models.DockerConfig) (string, string, error) {
+func (w *Worker) GenerateAndStartContainer(config models.DockerConfig) (string, error) {
 	containerConfig := &container.Config{
 		Image:        config.Image,
 		AttachStdin:  true,
@@ -30,12 +29,12 @@ func (w *Worker) GenerateAndStartContainer(config models.DockerConfig) (string, 
 	resp, err := w.client.ContainerCreate(w.ctx, containerConfig, hostConfig, nil, nil, time.Now().Format("20060102150405"))
 	if err != nil {
 		log.Printf("Error creating container: %v\n", err)
-		return "", "", err
+		return "", err
 	}
 
 	if err := w.client.ContainerStart(w.ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		log.Printf("Error starting container: %v\n", err)
-		return "", "", err
+		return "", err
 	}
 
 	// Wait for the container to finish
@@ -44,37 +43,37 @@ func (w *Worker) GenerateAndStartContainer(config models.DockerConfig) (string, 
 	case waitResult := <-waitResultCh:
 		if waitResult.StatusCode != 0 {
 			log.Printf("Container exited with non-zero status code: %d\n", waitResult.StatusCode)
-			return resp.ID, "", fmt.Errorf("container exited with non-zero status code: %d", waitResult.StatusCode)
+			return resp.ID, fmt.Errorf("container exited with non-zero status code: %d", waitResult.StatusCode)
 		}
 	case err := <-errCh:
 		if err != nil {
 			log.Printf("Error waiting for container to finish: %v\n", err)
 
-			return resp.ID, "", err
+			return resp.ID, err
 		}
 	case <-w.ctx.Done():
 		log.Printf("Context canceled while waiting for container to finish.\n")
-		return resp.ID, "", w.ctx.Err()
+		return resp.ID, w.ctx.Err()
 	}
 
-	// Capture container output
-	out, err := w.client.ContainerLogs(w.ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true})
-	if err != nil {
-		log.Printf("Error retrieving container logs: %v\n", err)
-		return resp.ID, "", err
-	}
-	defer out.Close()
+	// // Capture container output
+	// out, err := w.client.ContainerLogs(w.ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true})
+	// if err != nil {
+	// 	log.Printf("Error retrieving container logs: %v\n", err)
+	// 	return resp.ID, "", err
+	// }
+	// defer out.Close()
 
-	// Read the output
-	output, err := io.ReadAll(out)
-	if err != nil {
-		log.Printf("Error reading container logs: %v\n", err)
-		return "", "", err
-	}
+	// // Read the output
+	// output, err := io.ReadAll(out)
+	// if err != nil {
+	// 	log.Printf("Error reading container logs: %v\n", err)
+	// 	return "", "", err
+	// }
 
 	// log.Printf("Container output:\n%s\n", output)
 
-	return resp.ID, string(output), nil
+	return resp.ID, nil
 }
 
 // StopAndRemoveContainer stops and removes a Docker container.
