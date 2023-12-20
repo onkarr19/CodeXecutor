@@ -64,7 +64,7 @@ func (w *Worker) GenerateAndStartContainer(config models.DockerConfig) (string, 
 
 // StopAndRemoveContainer stops and removes a Docker container.
 func (w *Worker) StopAndRemoveContainer(containerID string) error {
-	timeout := int(10)
+	timeout := int(0)
 
 	stopOptions := container.StopOptions{
 		Timeout: &timeout,
