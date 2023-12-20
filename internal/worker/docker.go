@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -26,19 +27,22 @@ func (w *Worker) GenerateAndStartContainer(config models.DockerConfig) (string, 
 
 	hostConfig := &container.HostConfig{}
 
-	resp, err := w.client.ContainerCreate(w.ctx, containerConfig, hostConfig, nil, nil, time.Now().Format("20060102150405"))
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	resp, err := w.client.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, time.Now().Format("20060102150405"))
 	if err != nil {
 		log.Printf("Error creating container: %v\n", err)
 		return "", err
 	}
 
-	if err := w.client.ContainerStart(w.ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+	if err := w.client.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		log.Printf("Error starting container: %v\n", err)
 		return "", err
 	}
 
 	// Wait for the container to finish
-	waitResultCh, errCh := w.client.ContainerWait(w.ctx, resp.ID, container.WaitConditionNotRunning)
+	waitResultCh, errCh := w.client.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
 	select {
 	case waitResult := <-waitResultCh:
 		if waitResult.StatusCode != 0 {
@@ -51,27 +55,10 @@ func (w *Worker) GenerateAndStartContainer(config models.DockerConfig) (string, 
 
 			return resp.ID, err
 		}
-	case <-w.ctx.Done():
-		log.Printf("Context canceled while waiting for container to finish.\n")
-		return resp.ID, w.ctx.Err()
+	case <-ctx.Done():
+		log.Printf("Time out.\n")
+		return resp.ID, ctx.Err()
 	}
-
-	// // Capture container output
-	// out, err := w.client.ContainerLogs(w.ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true})
-	// if err != nil {
-	// 	log.Printf("Error retrieving container logs: %v\n", err)
-	// 	return resp.ID, "", err
-	// }
-	// defer out.Close()
-
-	// // Read the output
-	// output, err := io.ReadAll(out)
-	// if err != nil {
-	// 	log.Printf("Error reading container logs: %v\n", err)
-	// 	return "", "", err
-	// }
-
-	// log.Printf("Container output:\n%s\n", output)
 
 	return resp.ID, nil
 }
