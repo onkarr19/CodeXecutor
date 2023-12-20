@@ -46,7 +46,6 @@ func (w *Worker) GenerateAndStartContainer(config models.DockerConfig) (string, 
 	select {
 	case waitResult := <-waitResultCh:
 		if waitResult.StatusCode != 0 {
-			log.Printf("Container exited with non-zero status code: %d\n", waitResult.StatusCode)
 			return resp.ID, fmt.Errorf("container exited with non-zero status code: %d", waitResult.StatusCode)
 		}
 	case err := <-errCh:
