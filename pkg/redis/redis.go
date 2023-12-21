@@ -1,30 +1,71 @@
 package redis
 
 import (
-	"CodeXecutor/config"
 	"CodeXecutor/models"
 	"context"
 	"encoding/json"
+	"fmt"
 
+	"github.com/BurntSushi/toml"
 	"github.com/redis/go-redis/v9"
 )
 
+type RedisConfig struct {
+	Addr            string
+	Password        string
+	DB              int
+	PoolSize        int
+	MinIdleConns    int
+	MaxRetries      int
+	MinRetryBackoff int
+	MaxRetryBackoff int
+}
+
+// LoadRedisConfig loads the Redis configuration from a TOML file
+func LoadRedisConfig(filePath string) (*RedisConfig, error) {
+	var cfg RedisConfig
+	if _, err := toml.DecodeFile(filePath, &cfg); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
+}
+
+// ConnectRedis creates a Redis connection pool based on the provided configuration
 func ConnectRedis() *redis.Client {
-	cfg := config.NewRedisConfig()
-	// Initialize and return a connection to your Redis instance
-	client := redis.NewClient(&redis.Options{
+
+	cfg, err := LoadRedisConfig("config/redis.toml")
+	if err != nil {
+		panic(fmt.Sprintf("Error loading Redis config: %s", err.Error()))
+	}
+
+	// Create a new Redis Options struct
+	options := &redis.Options{
 		Addr:     cfg.Addr,
 		Password: cfg.Password,
 		DB:       cfg.DB,
+	}
+
+	// Create a pool of Redis connections
+	poolSize := 10
+	minIdleConns := 5
+
+	pool := redis.NewClient(&redis.Options{
+		Addr:         options.Addr,
+		Password:     options.Password,
+		DB:           options.DB,
+		PoolSize:     poolSize,
+		MinIdleConns: minIdleConns,
 	})
 
 	// Check if the connection to Redis is successful
-	_, err := client.Ping(context.Background()).Result()
+	_, err = pool.Ping(context.Background()).Result()
 	if err != nil {
-		panic("Failed to connect to Redis: " + err.Error())
+		panic(fmt.Sprintf("Failed to connect to Redis: %s", err.Error()))
+	} else {
+		fmt.Println("Connected to Redis")
 	}
 
-	return client
+	return pool
 }
 
 func EnqueueItem(client *redis.Client, queueName string, codeSubmission models.Job) error {
