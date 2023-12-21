@@ -1,7 +1,6 @@
 package main
 
 import (
-	"CodeXecutor/config"
 	"CodeXecutor/internal/app"
 	"CodeXecutor/internal/worker"
 	"context"
@@ -20,7 +19,7 @@ func main() {
 	defer workerPool.Stop()
 
 	// Initialize the data pulling loop
-	go worker.PullData(workerPool, config.RedisQueueName)
+	go worker.PullData(workerPool, "code-submissions")
 
 	// Monitor system load and adjust the worker pool size as needed
 	// Implement logic to scale workers up or down based on the load
