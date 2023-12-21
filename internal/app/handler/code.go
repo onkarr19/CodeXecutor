@@ -2,13 +2,21 @@ package handler
 
 import (
 	"CodeXecutor/models"
-	"CodeXecutor/pkg/redis"
+	redisClient "CodeXecutor/pkg/redis"
 	"CodeXecutor/utils"
 	"encoding/json"
 	"io"
 	"log"
 	"net/http"
+
+	redis "github.com/redis/go-redis/v9"
 )
+
+var client *redis.Client
+
+func init() {
+	client = redisClient.ConnectRedis()
+}
 
 // HandleCodeSubmission handles incoming code submissions.
 func HandleCodeSubmission(w http.ResponseWriter, r *http.Request) {
@@ -19,14 +27,11 @@ func HandleCodeSubmission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Enqueue the code submission in Redis for processing
-	client := redis.ConnectRedis()
-	defer client.Close()
-
 	// Specify the Redis queue name for code submissions
 	queueName := "code-submissions"
 
-	err = redis.EnqueueItem(client, queueName, job)
+	// Enqueue the code submission in Redis for processing
+	err = redisClient.EnqueueItem(client, queueName, job)
 	if err != nil {
 		log.Printf("Failed to enqueue code submission: %v", err)
 		// Handle the error and respond to the user with an error message
