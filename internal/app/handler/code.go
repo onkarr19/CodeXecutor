@@ -9,7 +9,7 @@ import (
 	"log"
 	"net/http"
 
-	redis "github.com/redis/go-redis/v9"
+	"github.com/redis/go-redis/v9"
 )
 
 var client *redis.Client
@@ -38,8 +38,6 @@ func HandleCodeSubmission(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to submit code", http.StatusInternalServerError)
 		return
 	}
-
-	// log.Printf("Code submission with ID %s enqueued for processing", job.ID)
 
 	// Respond to the user with a message indicating that the code has been submitted
 	responseMessage := "Your code has been submitted for processing. Submission ID: " + job.ID
