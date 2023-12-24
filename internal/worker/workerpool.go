@@ -36,6 +36,8 @@ func NewWorkerPool(ctx context.Context, minWorkers, maxWorkers int) *WorkerPool 
 	}
 
 	wp.initWorkers()
+	// Initialize the data pulling loop
+	go PullData(wp, "code-submissions")
 
 	return wp
 }

@@ -14,12 +14,9 @@ func main() {
 	server := app.NewServer()
 	server.Start()
 
-	// Initialize the dynamic worker pool with min and max worker limits
+	// Initialize the worker pool with min and max worker limits
 	workerPool := worker.NewWorkerPool(ctx, 1, 4)
 	defer workerPool.Stop()
-
-	// Initialize the data pulling loop
-	go worker.PullData(workerPool, "code-submissions")
 
 	// Monitor system load and adjust the worker pool size as needed
 	// Implement logic to scale workers up or down based on the load
