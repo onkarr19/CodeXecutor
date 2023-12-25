@@ -40,7 +40,7 @@ func HandleCodeSubmission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Wait for 1 second (1000 milliseconds)
+	// Wait for 0.5 second (500 milliseconds)
 	time.Sleep(500 * time.Millisecond)
 
 	result, err := redisClient.GetCache(client, job.ID)
@@ -101,7 +101,7 @@ func HandleResult(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	// Set the HTTP status code to 412 (Precondition Failed)
-	w.WriteHeader(http.StatusPreconditionFailed)
+	w.WriteHeader(http.StatusAccepted)
 
 	// Write the JSON response to the response writer
 	w.Write(responseJSON)
