@@ -18,8 +18,6 @@ func main() {
 	workerPool := worker.NewWorkerPool(ctx, 1, 4)
 	defer workerPool.Stop()
 
-	// Monitor system load and adjust the worker pool size as needed
-	// Implement logic to scale workers up or down based on the load
 
 	// Wait for termination signal
 	<-ctx.Done()

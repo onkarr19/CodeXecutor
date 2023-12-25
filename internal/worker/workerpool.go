@@ -93,6 +93,10 @@ func (wp *WorkerPool) Stop() {
 	log.Println("Worker pool stopped")
 }
 
+// TODO
+// Monitor system load and adjust the worker pool size as needed
+// Implement logic to scale workers up or down based on the load
+
 // MonitorSystemLoad periodically monitors system load and adjusts worker count.
 func (wp *WorkerPool) MonitorSystemLoad() {
 	for {
