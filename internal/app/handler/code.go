@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -39,8 +40,18 @@ func HandleCodeSubmission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Respond to the user with a message indicating that the code has been submitted
-	responseMessage := "Your code has been submitted for processing. Submission ID: " + job.ID
+	// Wait for 1 second (1000 milliseconds)
+	time.Sleep(500 * time.Millisecond)
+
+	result, err := redisClient.GetCache(client, job.ID)
+	responseMessage := ""
+	if err != nil {
+		// Respond to the user with a message indicating that the code has been submitted
+		responseMessage = "Your code has been submitted for processing. Submission ID: " + job.ID
+	} else {
+		// return result
+		responseMessage = result
+	}
 	w.WriteHeader(http.StatusAccepted) // 202 Accepted status code
 	w.Write([]byte(responseMessage))
 }
@@ -66,11 +77,11 @@ func extractCodeSubmission(r *http.Request) (models.Job, error) {
 }
 
 func HandleResult(w http.ResponseWriter, r *http.Request) {
+	key := r.URL.Query().Get("key")
 	response := struct {
 		Message string `json:"message"`
 	}{}
 
-	key := r.URL.Query().Get("key")
 	result, err := redisClient.GetCache(client, key)
 	if err != nil {
 		log.Println(err)
