@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/redis/go-redis/v9"
@@ -96,4 +97,15 @@ func DequeueItem(client *redis.Client, queueName string) (models.Job, error) {
 	}
 
 	return codeSubmission, nil
+}
+
+func SetCache(client *redis.Client, key string, data interface{}, expiration time.Duration) error {
+	// Convert the data to a JSON string
+	result, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	// Set the JSON string in Redis with expiration time
+	return client.Set(context.Background(), key, result, expiration).Err()
 }

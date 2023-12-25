@@ -2,7 +2,6 @@ package worker
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -46,7 +45,8 @@ func (w *Worker) GenerateAndStartContainer(config models.DockerConfig) (string, 
 	select {
 	case waitResult := <-waitResultCh:
 		if waitResult.StatusCode != 0 {
-			return resp.ID, fmt.Errorf("container exited with non-zero status code: %d", waitResult.StatusCode)
+			return resp.ID, err
+			// return resp.ID, fmt.Errorf("container exited with non-zero status code: %d", waitResult.StatusCode)
 		}
 	case err := <-errCh:
 		if err != nil {

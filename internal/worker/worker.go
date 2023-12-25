@@ -2,16 +2,25 @@ package worker
 
 import (
 	"CodeXecutor/models"
+	RedisClient "CodeXecutor/pkg/redis"
 	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/redis/go-redis/v9"
 )
+
+var redisClient *redis.Client
+
+func init() {
+	redisClient = RedisClient.ConnectRedis()
+}
 
 // Worker represents a worker that handles code compilation jobs.
 type Worker struct {
@@ -81,30 +90,37 @@ func (w *Worker) handleJob(job models.Job) {
 	})
 
 	if err != nil {
-		log.Printf("Error generating Docker container: %v\n", err)
+		log.Println(err)
 		// Handle the error appropriately
 	}
+
+	// redisClient := redis.ConnectRedis()
+	output := models.CompilationResult{}
 
 	// Retrieve container logs
 	logs, err := w.getContainerLogs(containerID)
 	if err != nil {
-		log.Printf("Error getting container logs: %v\n", err)
+		log.Println(err)
+		output.Error = err
 		// Handle the error appropriately
 	} else {
-		res := models.CompilationResult{
-			Success: true,
-			Id:      job.ID,
-			Log:     logs,
+		output.ExitCode, err = w.getContainerExitCode(containerID)
+		if err != nil {
+			log.Println(err)
 		}
-		fmt.Printf("%+v\n", res)
-		fmt.Println("Logs:", logs)
+		output.Output = logs
+	}
+
+	// Set cache with a maximum duration of 15 seconds
+	err = RedisClient.SetCache(redisClient, job.ID, output, 15*time.Second)
+	if err != nil {
+		fmt.Println("Error setting cache:", err)
 	}
 
 	// Remove the Docker container
 	if err := w.StopAndRemoveContainer(containerID); err != nil {
 		log.Printf("Error stopping and removing Docker container: %v\n", err)
 		// Handle the error appropriately
-		return
 	}
 }
 
@@ -117,4 +133,14 @@ func (w *Worker) getContainerLogs(containerID string) (string, error) {
 	defer out.Close()
 	io.Copy(&logsBuffer, out)
 	return logsBuffer.String(), nil
+}
+
+func (w *Worker) getContainerExitCode(containerID string) (int, error) {
+	// Get container inspect information
+	containerInspect, err := w.client.ContainerInspect(context.Background(), containerID)
+	if err != nil {
+		// panic(err)
+		return -1, err
+	}
+	return containerInspect.State.ExitCode, nil
 }
