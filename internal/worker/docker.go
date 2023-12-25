@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"CodeXecutor/models"
-	"CodeXecutor/utils"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -31,7 +30,7 @@ func (w *Worker) GenerateAndStartContainer(config models.DockerConfig) (string, 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	resp, err := w.client.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, utils.GenerateUniqueID())
+	resp, err := w.client.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, config.ID)
 	if err != nil {
 		log.Printf("Error creating container: %v\n", err)
 		return "", err
@@ -39,7 +38,7 @@ func (w *Worker) GenerateAndStartContainer(config models.DockerConfig) (string, 
 
 	if err := w.client.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		log.Printf("Error starting container: %v\n", err)
-		return "", err
+		return resp.ID, err
 	}
 
 	// Wait for the container to finish

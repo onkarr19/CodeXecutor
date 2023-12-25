@@ -74,6 +74,7 @@ func (w *Worker) handleJob(job models.Job) {
 	}
 
 	containerID, err := w.GenerateAndStartContainer(models.DockerConfig{
+		ID:       job.ID,
 		Image:    image,
 		Language: job.Language,
 		Code:     job.Code,
@@ -90,6 +91,12 @@ func (w *Worker) handleJob(job models.Job) {
 		log.Printf("Error getting container logs: %v\n", err)
 		// Handle the error appropriately
 	} else {
+		res := models.CompilationResult{
+			Success: true,
+			Id:      job.ID,
+			Log:     logs,
+		}
+		fmt.Printf("%+v\n", res)
 		fmt.Println("Logs:", logs)
 	}
 

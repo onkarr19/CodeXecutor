@@ -9,6 +9,7 @@ type Job struct {
 
 // DockerConfig represents the configuration for the Docker container.
 type DockerConfig struct {
+	ID       string `json:"id"`       // unique identifier
 	Image    string `json:"image"`    // Docker image name, e.g., "python:3.9"
 	Code     string `json:"code"`     // User's code to be executed
 	Language string `json:"language"` // Programming language (used for selecting the image)
