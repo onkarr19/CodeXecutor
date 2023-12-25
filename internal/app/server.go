@@ -19,7 +19,8 @@ func NewServer() *Server {
 // Start starts the application server.
 func (s *Server) Start() {
 	// Initialize routes and start the HTTP server
-	http.HandleFunc("/", handler.HandleCodeSubmission)
+	http.HandleFunc("/submit", handler.HandleCodeSubmission)
+	http.HandleFunc("/result", handler.HandleResult)
 
 	go func() {
 		if err := http.ListenAndServe("localhost:8080", nil); err != nil {

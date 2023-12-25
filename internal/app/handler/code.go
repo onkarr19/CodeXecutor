@@ -64,3 +64,34 @@ func extractCodeSubmission(r *http.Request) (models.Job, error) {
 	job.ID = utils.GenerateUniqueID()
 	return job, nil
 }
+
+func HandleResult(w http.ResponseWriter, r *http.Request) {
+	response := struct {
+		Message string `json:"message"`
+	}{}
+
+	key := r.URL.Query().Get("key")
+	result, err := redisClient.GetCache(client, key)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "No data found", http.StatusNotFound)
+		return
+	}
+	response.Message = result
+
+	// Convert the response structure to JSON
+	responseJSON, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// Set the Content-Type header to indicate JSON content
+	w.Header().Set("Content-Type", "application/json")
+
+	// Set the HTTP status code to 412 (Precondition Failed)
+	w.WriteHeader(http.StatusPreconditionFailed)
+
+	// Write the JSON response to the response writer
+	w.Write(responseJSON)
+}
