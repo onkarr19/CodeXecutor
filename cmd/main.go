@@ -18,7 +18,6 @@ func main() {
 	workerPool := worker.NewWorkerPool(ctx, 1, 4)
 	defer workerPool.Stop()
 
-
 	// Wait for termination signal
 	<-ctx.Done()
 

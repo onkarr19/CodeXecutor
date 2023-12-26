@@ -2,6 +2,8 @@ module CodeXecutor
 
 go 1.21.3
 
+require github.com/gorilla/mux v1.8.1
+
 require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/distribution/reference v0.5.0 // indirect

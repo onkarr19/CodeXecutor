@@ -2,13 +2,17 @@ package app
 
 import (
 	"CodeXecutor/internal/app/handler"
+	"context"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 // Server represents the application server.
 type Server struct {
 	// Add server-related fields and dependencies here
+	httpServer *http.Server
 }
 
 // NewServer initializes and returns a new Server instance.
@@ -17,13 +21,22 @@ func NewServer() *Server {
 }
 
 // Start starts the application server.
-func (s *Server) Start() {
-	// Initialize routes and start the HTTP server
-	http.HandleFunc("/submit", handler.HandleCodeSubmission)
-	http.HandleFunc("/result", handler.HandleResult)
+func (server *Server) Start() {
+	// Initialize Gorilla mux  router
+	router := mux.NewRouter()
+
+	// Define routes
+	router.HandleFunc("/submit", handler.HandleCodeSubmission).Methods("POST")
+	router.HandleFunc("/result", handler.HandleResult).Methods("GET")
+
+	// Create an HTTP server with the Gorilla Mux router
+	server.httpServer = &http.Server{
+		Addr:    "localhost:8080",
+		Handler: router,
+	}
 
 	go func() {
-		if err := http.ListenAndServe("localhost:8080", nil); err != nil {
+		if err := server.httpServer.ListenAndServe(); err != nil {
 			log.Fatalf("HTTP server error: %v", err)
 		}
 	}()
@@ -32,6 +45,10 @@ func (s *Server) Start() {
 }
 
 // Stop gracefully stops the application server.
-func (s *Server) Stop() {
-	// Implement graceful shutdown logic here
+func (server *Server) Stop() {
+	// Shutdown the HTTP server gracefully
+	if err := server.httpServer.Shutdown(context.Background()); err != nil {
+		log.Printf("Error during server shutdown: %v", err)
+	}
+	log.Println("shutting the server")
 }
