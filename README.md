@@ -19,12 +19,15 @@ CodeXecutor/
 │   │   ├── handler/
 │   │   │   └── code.go         # Code handling logic
 │   │   └── server.go           # Application-server code
+│   ├── middleware
+│   │   └── json.go             # set content-type to json
 │   └── worker/
 │       ├── docker.go           # Docker container logic
 │       ├── worker.go           # Worker-specific code
 │       └── workerpool.go       # Workerpool management
 ├── models/
 │   ├── job.go                  # Job-related data models
+│   └── output.go               # output data model
 ├── pkg/
 │   ├── redis/                  # Redis-related code
 │   │   └── redis.go            # Redis connection code
