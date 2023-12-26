@@ -64,6 +64,62 @@ run run ./cmd
 This will start the server component of the project.
 
 
+### API endpoints
+##### Submit Code
+```http
+POST /submit
+```
+Endpoint for submitting code.
+
+Request:
+Body: 
+```json
+{
+    "Code": "import time;print(time.time());time.sleep(1);print(264/0)",
+    "language": "python",
+    "time": {{currentTimestamp}} // optional
+}
+```
+Example
+```bash
+curl -X POST -H "Content-Type: application/json" -d '{
+    "Code": "import time;print(time.time());time.sleep(1);print(264/0)",
+    "language": "python",
+    "time": 1640588800
+}' http://localhost:8080/submit
+```
+
+
+##### Get Result:
+```bash
+GET /result?key={submissionKey}
+```
+Endpoint for retrieving the result of a submitted code.
+
+
+Request:
+Parameters:
+key (string, required): The unique key associated with the code submission.
+
+Example:
+```bash
+curl http://localhost:8080/result?key=d3389ac4-1080-47c9-b326-19d8437afc2a
+```
+
+Response:
+```json
+{
+    "message": "{\"ExitCode\":0,\"Output\":\"1703569908.9141312\\r\\n26.4\\r\\n\",\"Error\":null}"
+}
+```
+
+Example:
+```json
+{
+    "message": "{\"ExitCode\":0,\"Output\":\"1703569908.9141312\\r\\n26.4\\r\\n\",\"Error\":null}"
+}
+```
+
 ### Stopping Dependencies
 ```bash
 make stop-services
