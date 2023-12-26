@@ -21,6 +21,9 @@ func init() {
 
 // HandleCodeSubmission handles incoming code submissions.
 func HandleCodeSubmission(w http.ResponseWriter, r *http.Request) {
+	// Set the Content-Type header to indicate JSON content
+	w.Header().Set("Content-Type", "application/json")
+
 	// Extract code submission data from the request
 	job, err := extractCodeSubmission(r)
 	if err != nil {
@@ -40,20 +43,36 @@ func HandleCodeSubmission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	response := struct {
+		SubmissionId string `json:"submissionid"`
+		Message      string `json:"message"`
+	}{}
+	response.SubmissionId = job.ID
+
 	// Wait for 0.5 second (500 milliseconds)
 	time.Sleep(500 * time.Millisecond)
 
 	result, err := redisClient.GetCache(client, job.ID)
-	responseMessage := ""
 	if err != nil {
 		// Respond to the user with a message indicating that the code has been submitted
-		responseMessage = "Your code has been submitted for processing. Submission ID: " + job.ID
+		response.Message = "Your code has been submitted for processing."
+		w.WriteHeader(http.StatusAccepted) // 202 Accepted status code
+
 	} else {
 		// return result
-		responseMessage = result
+		response.Message = result
+		w.WriteHeader(http.StatusOK) // 200 Ok status code
 	}
-	w.WriteHeader(http.StatusAccepted) // 202 Accepted status code
-	w.Write([]byte(responseMessage))
+
+	// Convert the response structure to JSON
+	responseJSON, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// Write the JSON response to the response writer
+	w.Write(responseJSON)
 }
 
 func extractCodeSubmission(r *http.Request) (models.Job, error) {
