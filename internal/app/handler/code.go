@@ -85,7 +85,7 @@ func HandleResult(w http.ResponseWriter, r *http.Request) {
 	result, err := redisClient.GetCache(client, key)
 	if err != nil {
 		log.Println(err)
-		http.Error(w, "No data found", http.StatusNotFound)
+		http.Error(w, "No data found", http.StatusNoContent)
 		return
 	}
 	response.Message = result
@@ -100,8 +100,8 @@ func HandleResult(w http.ResponseWriter, r *http.Request) {
 	// Set the Content-Type header to indicate JSON content
 	w.Header().Set("Content-Type", "application/json")
 
-	// Set the HTTP status code to 412 (Precondition Failed)
-	w.WriteHeader(http.StatusAccepted)
+	// Set the HTTP status code to 200
+	w.WriteHeader(http.StatusOK)
 
 	// Write the JSON response to the response writer
 	w.Write(responseJSON)
