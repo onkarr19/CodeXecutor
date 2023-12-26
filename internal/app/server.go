@@ -2,6 +2,7 @@ package app
 
 import (
 	"CodeXecutor/internal/app/handler"
+	"CodeXecutor/internal/middleware"
 	"context"
 	"log"
 	"net/http"
@@ -24,6 +25,9 @@ func NewServer() *Server {
 func (server *Server) Start() {
 	// Initialize Gorilla mux  router
 	router := mux.NewRouter()
+
+	// Use the JSONMiddleware for all routes
+	router.Use(middleware.JSONMiddleware)
 
 	// Define routes
 	router.HandleFunc("/submit", handler.HandleCodeSubmission).Methods("POST")

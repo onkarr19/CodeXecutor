@@ -21,8 +21,6 @@ func init() {
 
 // HandleCodeSubmission handles incoming code submissions.
 func HandleCodeSubmission(w http.ResponseWriter, r *http.Request) {
-	// Set the Content-Type header to indicate JSON content
-	w.Header().Set("Content-Type", "application/json")
 
 	// Extract code submission data from the request
 	job, err := extractCodeSubmission(r)
@@ -115,9 +113,6 @@ func HandleResult(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-
-	// Set the Content-Type header to indicate JSON content
-	w.Header().Set("Content-Type", "application/json")
 
 	// Set the HTTP status code to 200
 	w.WriteHeader(http.StatusOK)
