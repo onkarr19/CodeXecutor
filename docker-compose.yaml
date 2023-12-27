@@ -5,3 +5,13 @@ services:
     image: "redis"
     ports:
       - "6379:6379"
+
+  myapp:
+    build:
+      context: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
