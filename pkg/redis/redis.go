@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -22,13 +23,27 @@ type RedisConfig struct {
 	MaxRetryBackoff int
 }
 
+type Config struct {
+	Redis RedisConfig `toml:"redis"`
+}
+
 // LoadRedisConfig loads the Redis configuration from a TOML file
-func LoadRedisConfig(filePath string) (*RedisConfig, error) {
-	var cfg RedisConfig
-	if _, err := toml.DecodeFile(filePath, &cfg); err != nil {
-		return nil, err
+func LoadRedisConfig(filePath string) (Config, error) {
+	var config Config
+
+	// Read the TOML file
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return config, err
 	}
-	return &cfg, nil
+
+	// Unmarshal the TOML data into the Config struct
+	err = toml.Unmarshal(data, &config)
+	if err != nil {
+		return config, err
+	}
+
+	return config, nil
 }
 
 // ConnectRedis creates a Redis connection pool based on the provided configuration
@@ -41,9 +56,9 @@ func ConnectRedis() *redis.Client {
 
 	// Create a new Redis Options struct
 	options := &redis.Options{
-		Addr:     cfg.Addr,
-		Password: cfg.Password,
-		DB:       cfg.DB,
+		Addr:     cfg.Redis.Addr,
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
 	}
 
 	// Create a pool of Redis connections
