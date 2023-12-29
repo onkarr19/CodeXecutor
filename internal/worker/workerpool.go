@@ -71,6 +71,10 @@ func (wp *WorkerPool) SubmitJob(job models.Job) {
 
 func PullData(wp *WorkerPool, queueName string) {
 	client := redis.ConnectRedis()
+	if client == nil {
+		log.Println("Error connecting to Redis")
+		return
+	}
 	defer client.Close()
 	for {
 		// Dequeue item from Redis queue

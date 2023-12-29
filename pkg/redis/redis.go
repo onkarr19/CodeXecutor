@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -27,59 +28,68 @@ type Config struct {
 	Redis RedisConfig `toml:"redis"`
 }
 
+var (
+	ConfigSingle *Config
+	once         sync.Once
+	pool         *redis.Client
+	err          error
+)
+
 // LoadRedisConfig loads the Redis configuration from a TOML file
-func LoadRedisConfig(filePath string) (Config, error) {
+func LoadRedisConfig(filePath string) (*Config, error) {
 	var config Config
 
 	// Read the TOML file
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return config, err
+		return &config, err
 	}
 
 	// Unmarshal the TOML data into the Config struct
 	err = toml.Unmarshal(data, &config)
 	if err != nil {
-		return config, err
+		return &config, err
 	}
 
-	return config, nil
+	return &config, nil
 }
 
 // ConnectRedis creates a Redis connection pool based on the provided configuration
 func ConnectRedis() *redis.Client {
 
-	cfg, err := LoadRedisConfig("config/redis.toml")
-	if err != nil {
-		panic(fmt.Sprintf("Error loading Redis config: %s", err.Error()))
-	}
+	once.Do(func() {
+		ConfigSingle, err = LoadRedisConfig("config/redis.toml")
+		if err != nil {
+			panic(fmt.Sprintf("Error loading Redis config: %s", err.Error()))
+		}
 
-	// Create a new Redis Options struct
-	options := &redis.Options{
-		Addr:     cfg.Redis.Addr,
-		Password: cfg.Redis.Password,
-		DB:       cfg.Redis.DB,
-	}
+		// Create a new Redis Options struct
+		options := &redis.Options{
+			Addr:     ConfigSingle.Redis.Addr,
+			Password: ConfigSingle.Redis.Password,
+			DB:       ConfigSingle.Redis.DB,
+		}
 
-	// Create a pool of Redis connections
-	poolSize := 10
-	minIdleConns := 5
+		// Create a pool of Redis connections
+		poolSize := 10
+		minIdleConns := 5
 
-	pool := redis.NewClient(&redis.Options{
-		Addr:         options.Addr,
-		Password:     options.Password,
-		DB:           options.DB,
-		PoolSize:     poolSize,
-		MinIdleConns: minIdleConns,
+		pool = redis.NewClient(&redis.Options{
+			Addr:         options.Addr,
+			Password:     options.Password,
+			DB:           options.DB,
+			PoolSize:     poolSize,
+			MinIdleConns: minIdleConns,
+		})
+
+		// Check if the connection to Redis is successful
+		_, err = pool.Ping(context.Background()).Result()
+		if err != nil {
+			panic(fmt.Sprintf("Failed to connect to Redis: %s\n", err.Error()))
+		} else {
+			fmt.Println("Connected to Redis")
+		}
 	})
-
-	// Check if the connection to Redis is successful
-	_, err = pool.Ping(context.Background()).Result()
-	if err != nil {
-		panic(fmt.Sprintf("Failed to connect to Redis: %s", err.Error()))
-	} else {
-		fmt.Println("Connected to Redis")
-	}
 
 	return pool
 }
