@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"sync"
 	"time"
@@ -60,7 +61,7 @@ func ConnectRedis() *redis.Client {
 	once.Do(func() {
 		ConfigSingle, err = LoadRedisConfig("config/redis.toml")
 		if err != nil {
-			panic(fmt.Sprintf("Error loading Redis config: %s", err.Error()))
+			log.Fatalf("Error loading Redis config: %v", err)
 		}
 
 		// Create a new Redis Options struct
@@ -85,9 +86,9 @@ func ConnectRedis() *redis.Client {
 		// Check if the connection to Redis is successful
 		_, err = pool.Ping(context.Background()).Result()
 		if err != nil {
-			panic(fmt.Sprintf("Failed to connect to Redis: %s\n", err.Error()))
+			log.Fatalf("Failed to connect to Redis: %v\n", err)
 		} else {
-			fmt.Println("Connected to Redis")
+			log.Println("Connected to Redis")
 		}
 	})
 
