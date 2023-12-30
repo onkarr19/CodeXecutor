@@ -2,6 +2,7 @@ package redis
 
 import (
 	"CodeXecutor/models"
+	"CodeXecutor/utils"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -59,7 +60,12 @@ func LoadRedisConfig(filePath string) (*Config, error) {
 func ConnectRedis() *redis.Client {
 
 	once.Do(func() {
-		ConfigSingle, err = LoadRedisConfig("config/redis.toml")
+		configPath, er := utils.GetFilePath("config", "redis.toml")
+		if er != nil {
+			panic(er)
+		}
+
+		ConfigSingle, err = LoadRedisConfig(configPath)
 		if err != nil {
 			log.Fatalf("Error loading Redis config: %v", err)
 		}
