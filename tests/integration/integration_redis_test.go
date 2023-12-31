@@ -14,6 +14,7 @@ import (
 // TestFullFlow tests the full end-to-end flow of enqueueing, dequeuing, and caching.
 func TestFullFlow(t *testing.T) {
 	client := redis.ConnectRedis()
+	defer client.Close()
 
 	// Create a sample job for testing
 	job := models.Job{
