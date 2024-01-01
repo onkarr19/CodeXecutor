@@ -133,7 +133,7 @@ func DequeueItem(client *redis.Client, queueName string) (models.Job, error) {
 
 func SetCache(client *redis.Client, key string, data interface{}, expiration time.Duration) error {
 	// Convert the data to a JSON string
-	result, err := json.Marshal(data)
+	result, err := json.MarshalIndent(data, "", " ")
 	if err != nil {
 		return err
 	}
@@ -142,17 +142,23 @@ func SetCache(client *redis.Client, key string, data interface{}, expiration tim
 	return client.Set(context.Background(), key, result, expiration).Err()
 }
 
-func GetCache(client *redis.Client, key string) (string, error) {
+func GetCache(client *redis.Client, key string) (models.CompilationResult, error) {
 	// Check if the key exists in the cache
 	result, err := client.Get(context.Background(), key).Result()
 	if err == redis.Nil {
 		// Key does not exist in the cache
-		return "", fmt.Errorf("key not found in cache")
+		return models.CompilationResult{}, fmt.Errorf("key not found in cache")
 	} else if err != nil {
 		// Error occurred while fetching from the cache
-		return "", err
+		return models.CompilationResult{}, err
+	}
+
+	var compilationResult models.CompilationResult
+	err = json.Unmarshal([]byte(result), &compilationResult)
+	if err != nil {
+		return models.CompilationResult{}, err
 	}
 
 	// Key found in the cache, return the result
-	return result, nil
+	return compilationResult, nil
 }

@@ -25,32 +25,40 @@ type Response struct {
 }
 
 // HandleResponse writes a JSON response to the http.ResponseWriter.
-func HandleResponse(w http.ResponseWriter, status int, key, message string) {
-	response := Response{Message: message, SubmissionId: key}
+func HandleResponse(w http.ResponseWriter, status int, err error, result models.CompilationResult) {
 
-	// Convert the response structure to JSON
-	responseJSON, err := json.Marshal(response)
-	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	response := map[string]interface{}{
+		"found": err != redis.Nil,
+		"data":  nil,
+	}
+
+	if err != nil && err != redis.Nil {
+		// Handle Redis error
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Set the HTTP status code
-	w.WriteHeader(status)
+	if response["found"].(bool) {
+		// Key found
+		response["data"] = map[string]interface{}{
+			"output":   result.Output,
+			"error":    result.Error,
+			"exitcode": result.ExitCode,
+		}
+	}
 
-	// Write the JSON response to the response writer
-	w.Write(responseJSON)
+	sendJSONResponse(w, response, http.StatusOK)
 }
 
 // HandleError handles HTTP errors and writes a JSON response with an error message.
 func HandleError(w http.ResponseWriter, status int, err error) {
 	log.Printf("Error: %v", err)
-	HandleResponse(w, status, "", err.Error())
+	HandleResponse(w, status, err, models.CompilationResult{})
 }
 
 // HandleSubmissionResponse handles the response after submitting code.
 func HandleSubmissionResponse(w http.ResponseWriter, key string, status int) {
-	message := "Your code has been submitted for processing."
+	message := models.CompilationResult{}
 
 	// Wait for 0.5 second (500 milliseconds)
 	time.Sleep(500 * time.Millisecond)
@@ -64,7 +72,7 @@ func HandleSubmissionResponse(w http.ResponseWriter, key string, status int) {
 	}
 
 	// final response
-	HandleResponse(w, status, key, message)
+	HandleResponse(w, status, nil, message)
 }
 
 // HandleCodeSubmission handles incoming code submissions.
@@ -121,5 +129,14 @@ func HandleResult(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	HandleResponse(w, http.StatusOK, key, result)
+	HandleResponse(w, http.StatusOK, err, result)
+}
+
+func sendJSONResponse(w http.ResponseWriter, data interface{}, statusCode int) {
+	w.WriteHeader(statusCode)
+
+	// Encode and write the response
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }

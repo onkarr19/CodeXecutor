@@ -3,8 +3,6 @@ package redis
 import (
 	"CodeXecutor/models"
 	"context"
-	"encoding/json"
-	"log"
 	"os"
 	"testing"
 	"time"
@@ -74,21 +72,18 @@ func TestSetGetCache(t *testing.T) {
 
 	// Set data in cache
 	key := "unique-key-2"
-	data := map[string]interface{}{"name": "John", "age": 30.0}
+	data := models.CompilationResult{ExitCode: 0, Output: ".", Error: nil}
 	err := SetCache(client, key, data, time.Minute)
 	assert.NoError(t, err, "Error setting data in cache")
-	log.Println("working")
 
 	// Get data from cache
 	cachedData, err := GetCache(client, key)
 	assert.NoError(t, err, "Error getting data from cache")
 	assert.NotEmpty(t, cachedData, "Cached data should not be empty")
 
-	// Unmarshal the cached data and compare
-	var result map[string]interface{}
-	err = json.Unmarshal([]byte(cachedData), &result)
+	// compare the cached data
 	assert.NoError(t, err, "Error unmarshalling cached data")
-	assert.Equal(t, data, result, "Cached data does not match expected data")
+	assert.Equal(t, data, cachedData, "Cached data does not match expected data")
 }
 
 func TestSetCacheExpiredGetCache(t *testing.T) {
