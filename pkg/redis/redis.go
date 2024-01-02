@@ -70,24 +70,20 @@ func ConnectRedis() *redis.Client {
 			log.Fatalf("Error loading Redis config: %v", err)
 		}
 
-		// Create a new Redis Options struct
-		options := &redis.Options{
-			Addr:     ConfigSingle.Redis.Addr,
-			Password: ConfigSingle.Redis.Password,
-			DB:       ConfigSingle.Redis.DB,
-		}
-
 		// Create a pool of Redis connections
 		poolSize := 10
 		minIdleConns := 5
 
-		pool = redis.NewClient(&redis.Options{
-			Addr:         options.Addr,
-			Password:     options.Password,
-			DB:           options.DB,
+		// Create a new Redis Options struct
+		options := &redis.Options{
+			Addr:         ConfigSingle.Redis.Addr,
+			Password:     ConfigSingle.Redis.Password,
+			DB:           ConfigSingle.Redis.DB,
 			PoolSize:     poolSize,
 			MinIdleConns: minIdleConns,
-		})
+		}
+
+		pool = redis.NewClient(options)
 
 		// Check if the connection to Redis is successful
 		_, err = pool.Ping(context.Background()).Result()
