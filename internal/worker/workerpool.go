@@ -78,7 +78,7 @@ func PullData(wp *WorkerPool, queueName string) {
 	defer client.Close()
 	for {
 		// Dequeue item from Redis queue
-		job, err := redis.DequeueItem(client, queueName)
+		job, err := redis.DequeueItem(queueName)
 		if err != nil {
 			log.Println("Error dequeueing item from Redis:", err)
 			continue

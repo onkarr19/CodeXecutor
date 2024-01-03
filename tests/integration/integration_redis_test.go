@@ -25,21 +25,21 @@ func TestFullFlow(t *testing.T) {
 	}
 
 	// Enqueue the job
-	err := redis.EnqueueItem(client, "test-queue", job)
+	err := redis.EnqueueItem("test-queue", job)
 	assert.NoError(t, err, "Error enqueuing item")
 
 	// Dequeue the job
-	dequeuedJob, err := redis.DequeueItem(client, "test-queue")
+	dequeuedJob, err := redis.DequeueItem("test-queue")
 	assert.NoError(t, err, "Error dequeuing item")
 	assert.Equal(t, job, dequeuedJob, "Enqueued and dequeued jobs should be equal")
 
 	// Set and get data in cache
 	key := utils.GenerateUniqueID()
 	data := map[string]interface{}{"status": "success"}
-	err = redis.SetCache(client, key, data, time.Minute)
+	err = redis.SetCache(key, data, time.Minute)
 	assert.NoError(t, err, "Error setting data in cache")
 
-	cachedData, err := redis.GetCache(client, key)
+	cachedData, err := redis.GetCache(key)
 	assert.NoError(t, err, "Error getting data from cache")
 	assert.NotEmpty(t, cachedData, "Cached data should not be empty")
 

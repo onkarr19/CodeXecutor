@@ -112,7 +112,7 @@ func (w *Worker) handleJob(job models.Job) {
 	}
 
 	// Set cache with a maximum duration of 15 seconds
-	err = RedisClient.SetCache(redisClient, job.ID, output, 15*time.Second)
+	err = RedisClient.SetCache(job.ID, output, 15*time.Second)
 	if err != nil {
 		fmt.Println("Error setting cache:", err)
 	}

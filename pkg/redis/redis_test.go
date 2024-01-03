@@ -46,7 +46,6 @@ func TestConnectRedis(t *testing.T) {
 }
 
 func TestEnqueueDequeueItem(t *testing.T) {
-	client := ConnectRedis()
 
 	// Create a sample job for testing
 	job := models.Job{
@@ -57,27 +56,26 @@ func TestEnqueueDequeueItem(t *testing.T) {
 	}
 
 	// Enqueue the job
-	err := EnqueueItem(client, "test-queue", job)
+	err := EnqueueItem("test-queue", job)
 	assert.NoError(t, err, "Error enqueuing item")
 
 	// Dequeue the job
-	dequeuedJob, err := DequeueItem(client, "test-queue")
+	dequeuedJob, err := DequeueItem("test-queue")
 	assert.NoError(t, err, "Error dequeuing item")
 	assert.Equal(t, job, dequeuedJob, "Enqueued and dequeued jobs should be equal")
 
 }
 
 func TestSetGetCache(t *testing.T) {
-	client := ConnectRedis()
 
 	// Set data in cache
 	key := "unique-key-2"
 	data := models.CompilationResult{ExitCode: 0, Output: ".", Error: nil}
-	err := SetCache(client, key, data, time.Minute)
+	err := SetCache(key, data, time.Minute)
 	assert.NoError(t, err, "Error setting data in cache")
 
 	// Get data from cache
-	cachedData, err := GetCache(client, key)
+	cachedData, err := GetCache(key)
 	assert.NoError(t, err, "Error getting data from cache")
 	assert.NotEmpty(t, cachedData, "Cached data should not be empty")
 
@@ -95,14 +93,14 @@ func TestSetCacheExpiredGetCache(t *testing.T) {
 	expiration := time.Millisecond * 100 // Very short expiration time for testing
 
 	// Test SetCache with short expiration time
-	err := SetCache(client, key, data, expiration)
+	err := SetCache(key, data, expiration)
 	assert.NoError(t, err, "SetCache should not return an error")
 
 	// Wait for expiration
 	time.Sleep(expiration + time.Millisecond*50)
 
 	// Test GetCache for an expired key
-	_, err = GetCache(client, key)
+	_, err = GetCache(key)
 	assert.Error(t, err, "GetCache should return an error for an expired key")
 }
 
@@ -111,6 +109,6 @@ func TestGetCacheKeyNotFound(t *testing.T) {
 	defer client.Close()
 
 	// Test GetCache for a non-existent key
-	_, err := GetCache(client, "nonExistentKey")
+	_, err := GetCache("nonExistentKey")
 	assert.Error(t, err, "GetCache should return an error for a non-existent key")
 }

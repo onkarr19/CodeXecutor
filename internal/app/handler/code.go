@@ -64,7 +64,7 @@ func HandleSubmissionResponse(w http.ResponseWriter, key string, status int) {
 	time.Sleep(500 * time.Millisecond)
 
 	// Retrieve result if available
-	result, err := redisClient.GetCache(client, key)
+	result, err := redisClient.GetCache(key)
 	if err == nil {
 		// Set the response code and message based on the result
 		status = http.StatusOK
@@ -89,7 +89,7 @@ func HandleCodeSubmission(w http.ResponseWriter, r *http.Request) {
 	queueName := "code-submissions"
 
 	// Enqueue the code submission in Redis for processing
-	err = redisClient.EnqueueItem(client, queueName, job)
+	err = redisClient.EnqueueItem(queueName, job)
 	if err != nil {
 		log.Printf("Failed to enqueue code submission: %v", err)
 		// Handle the error and respond to the user with an error message
@@ -123,7 +123,7 @@ func extractCodeSubmission(r *http.Request) (models.Job, error) {
 // HandleResult handles requests to retrieve code processing results.
 func HandleResult(w http.ResponseWriter, r *http.Request) {
 	key := r.URL.Query().Get("key")
-	result, err := redisClient.GetCache(client, key)
+	result, err := redisClient.GetCache(key)
 	if err != nil {
 		HandleError(w, http.StatusNoContent, err)
 		return

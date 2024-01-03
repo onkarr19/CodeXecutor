@@ -33,7 +33,7 @@ type Config struct {
 var (
 	ConfigSingle *Config
 	once         sync.Once
-	pool         *redis.Client
+	clientPool   *redis.Client
 	err          error
 )
 
@@ -70,7 +70,7 @@ func ConnectRedis() *redis.Client {
 			log.Fatalf("Error loading Redis config: %v", err)
 		}
 
-		// Create a pool of Redis connections
+		// Create a clientPool of Redis connections
 		poolSize := 10
 		minIdleConns := 5
 
@@ -83,10 +83,10 @@ func ConnectRedis() *redis.Client {
 			MinIdleConns: minIdleConns,
 		}
 
-		pool = redis.NewClient(options)
+		clientPool = redis.NewClient(options)
 
 		// Check if the connection to Redis is successful
-		_, err = pool.Ping(context.Background()).Result()
+		_, err = clientPool.Ping(context.Background()).Result()
 		if err != nil {
 			log.Fatalf("Failed to connect to Redis: %v\n", err)
 		} else {
@@ -94,10 +94,10 @@ func ConnectRedis() *redis.Client {
 		}
 	})
 
-	return pool
+	return clientPool
 }
 
-func EnqueueItem(client *redis.Client, queueName string, codeSubmission models.Job) error {
+func EnqueueItem(queueName string, codeSubmission models.Job) error {
 	// Convert the codeSubmission struct to a JSON string
 	result, err := json.Marshal(codeSubmission)
 	if err != nil {
@@ -105,12 +105,12 @@ func EnqueueItem(client *redis.Client, queueName string, codeSubmission models.J
 	}
 
 	// Enqueue the JSON string in the Redis list
-	return client.LPush(context.Background(), queueName, result).Err()
+	return clientPool.LPush(context.Background(), queueName, result).Err()
 }
 
-func DequeueItem(client *redis.Client, queueName string) (models.Job, error) {
+func DequeueItem(queueName string) (models.Job, error) {
 	// Dequeue the JSON string from the Redis list
-	result, err := client.BRPop(context.Background(), 0, queueName).Result()
+	result, err := clientPool.BRPop(context.Background(), 0, queueName).Result()
 	if err != nil {
 		return models.Job{}, err
 	}
@@ -127,7 +127,7 @@ func DequeueItem(client *redis.Client, queueName string) (models.Job, error) {
 	return codeSubmission, nil
 }
 
-func SetCache(client *redis.Client, key string, data interface{}, expiration time.Duration) error {
+func SetCache(key string, data interface{}, expiration time.Duration) error {
 	// Convert the data to a JSON string
 	result, err := json.MarshalIndent(data, "", " ")
 	if err != nil {
@@ -135,12 +135,12 @@ func SetCache(client *redis.Client, key string, data interface{}, expiration tim
 	}
 
 	// Set the JSON string in Redis with expiration time
-	return client.Set(context.Background(), key, result, expiration).Err()
+	return clientPool.Set(context.Background(), key, result, expiration).Err()
 }
 
-func GetCache(client *redis.Client, key string) (models.CompilationResult, error) {
+func GetCache(key string) (models.CompilationResult, error) {
 	// Check if the key exists in the cache
-	result, err := client.Get(context.Background(), key).Result()
+	result, err := clientPool.Get(context.Background(), key).Result()
 	if err == redis.Nil {
 		// Key does not exist in the cache
 		return models.CompilationResult{}, fmt.Errorf("key not found in cache")
