@@ -4,7 +4,6 @@ import (
 	"CodeXecutor/models"
 	"CodeXecutor/pkg/redis"
 	"CodeXecutor/utils"
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -39,13 +38,11 @@ func TestFullFlow(t *testing.T) {
 	err = redis.SetCache(key, data, time.Minute)
 	assert.NoError(t, err, "Error setting data in cache")
 
-	cachedData, err := redis.GetCache(key)
+	result, err := redis.GetCache(key)
 	assert.NoError(t, err, "Error getting data from cache")
-	assert.NotEmpty(t, cachedData, "Cached data should not be empty")
+	assert.NotEmpty(t, result, "Cached data should not be empty")
 
 	// Unmarshal the cached data and compare
-	var result map[string]interface{}
-	err = json.Unmarshal([]byte(cachedData), &result)
 	assert.NoError(t, err, "Error unmarshalling cached data")
 	assert.Equal(t, data, result, "Cached data does not match expected data")
 }
