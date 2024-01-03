@@ -2,7 +2,7 @@ package worker
 
 import (
 	"CodeXecutor/models"
-	RedisClient "CodeXecutor/pkg/redis"
+	redisClient "CodeXecutor/pkg/redis"
 	"bytes"
 	"context"
 	"fmt"
@@ -13,14 +13,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
-	"github.com/redis/go-redis/v9"
 )
-
-var redisClient *redis.Client
-
-func init() {
-	redisClient = RedisClient.ConnectRedis()
-}
 
 // Worker represents a worker that handles code compilation jobs.
 type Worker struct {
@@ -94,7 +87,6 @@ func (w *Worker) handleJob(job models.Job) {
 		// Handle the error appropriately
 	}
 
-	// redisClient := redis.ConnectRedis()
 	output := models.CompilationResult{}
 
 	// Retrieve container logs
@@ -112,7 +104,7 @@ func (w *Worker) handleJob(job models.Job) {
 	}
 
 	// Set cache with a maximum duration of 15 seconds
-	err = RedisClient.SetCache(job.ID, output, 15*time.Second)
+	err = redisClient.SetCache(job.ID, output, 15*time.Second)
 	if err != nil {
 		fmt.Println("Error setting cache:", err)
 	}

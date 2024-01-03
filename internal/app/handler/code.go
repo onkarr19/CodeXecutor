@@ -13,12 +13,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var client *redis.Client
-
-func init() {
-	client = redisClient.ConnectRedis()
-}
-
 type Response struct {
 	Message      string `json:"message"`
 	SubmissionId string `json:"submissionid"`
